@@ -4,10 +4,10 @@ var width = svg.attr("width")
 var height = svg.attr("height");
 var graph = {}
 
-var boxWidth = 160
+var boxWidth = 260
 var labelHeight = 40
 var attackStepHeight = 30
-var sideMargin = 5
+var sideMargin = 50
 
 var colors = [
 //	[Dark shade, light shade]
@@ -83,9 +83,9 @@ var associations = [
 ]
 
 var simulation = d3.forceSimulation(assets)
-	.force('link', d3.forceLink().links(associations).strength(0))
+	.force('link', d3.forceLink().links(associations).strength(0.01))
 	.force('center', d3.forceCenter(width/2, height/2))
-	.force('charge', d3.forceManyBody().strength(-200))
+	.force('charge', d3.forceManyBody().strength(-800))
 	.on('tick', ticked)
 	
 //Lines for associations
@@ -168,9 +168,7 @@ function ticked() {
 		var y1 = assets[d.source.parent].y + (d.source.index * attackStepHeight) + 12 + labelHeight
 		var y2 = assets[d.target.parent].y + (d.target.index * attackStepHeight) + 12 + labelHeight
 
-		var z = "M " + x1 + " " + y1 + " C " + c1 + " " + y1 + " " + c2 + " " + y2 + " " + x2 + " " + y2
-		console.log(z)
-		return z
+		return "M " + x1 + " " + y1 + " C " + c1 + " " + y1 + " " + c2 + " " + y2 + " " + x2 + " " + y2
 	})
 }
 
@@ -228,17 +226,17 @@ function createAssetBox(d) {
 				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)
 				var yt = (relation.target.index * attackStepHeight + labelHeight + 12)
-				var bend = 10
+				var bend = 8
 				if(relation.source.index < relation.target.index) {
-					var start = "M " + boxWidth + " " + ys + " "
-					var c1 = "" + (boxWidth + 15 + (bend*Math.abs(relation.source.index - relation.target.index))) + " " + ys
-					var c2 = "" + (boxWidth + 15 + (bend*Math.abs(relation.source.index - relation.target.index))) + " " + yt
-					var end = (boxWidth + 5) + " " + yt
+					var start = "M " + (boxWidth-sideMargin) + " " + ys + " "
+					var c1 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(relation.source.index - relation.target.index))) + " " + ys
+					var c2 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(relation.source.index - relation.target.index))) + " " + yt
+					var end = (boxWidth - sideMargin + 5) + " " + yt
 				} else {
-					var start = "M " + 0 + " " + ys + " "
-					var c1 = "" + (0 - 15 - (bend*Math.abs(relation.source.index - relation.target.index))) + " " + ys
-					var c2 = "" + (0 - 15 - (bend*Math.abs(relation.source.index - relation.target.index))) + " " + yt
-					var end = -5 + " " + yt
+					var start = "M " + sideMargin + " " + ys + " "
+					var c1 = "" + (sideMargin - 20 - (bend*Math.abs(relation.source.index - relation.target.index))) + " " + ys
+					var c2 = "" + (sideMargin - 20 - (bend*Math.abs(relation.source.index - relation.target.index))) + " " + yt
+					var end = (sideMargin - 5) + " " + yt
 				}
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
 				line.setAttributeNS(null, 'stroke-width', 1.1)
@@ -255,7 +253,7 @@ function createAssetBox(d) {
 
 function draggedStart(d) {
 	simulation.alphaTarget(0.3).restart()
-	d3.select(this).classed("fixed", d.fixed = true);
+	d.fixed = true
 	d.fx = d.x
 	d.fy = d.y
 }
@@ -267,5 +265,5 @@ function dragged(d) {
 
 function draggedEnd(d) {
 	if (!d3.event.active) simulation.alphaTarget(0);
-	d3.select(this).classed("fixed", d.fixed = false);
+	d.fixed = false
 }
