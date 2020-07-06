@@ -83,9 +83,9 @@ var associations = [
 ]
 
 var simulation = d3.forceSimulation(assets)
-	.force('link', d3.forceLink().links(associations).distance(300))
+	.force('link', d3.forceLink().links(associations).strength(0))
 	.force('center', d3.forceCenter(width/2, height/2))
-	.force('charge', d3.forceManyBody().strength(-300))
+	.force('charge', d3.forceManyBody().strength(-60))
 	.on('tick', ticked)
 	
 //Lines for associations
@@ -102,6 +102,13 @@ graph.asset = d3.select('svg')
 	.enter()
 	.append('g')
 graph.assetBox = graph.asset.append(createAssetBox)
+
+var drag = d3.drag()
+	.on("start", draggedStart)
+	.on("drag", dragged)
+	.on("end", draggedEnd)
+
+graph.asset.call(drag)
 
 graph.attackPath = d3.select('svg')
 	.selectAll('line .path')
@@ -239,4 +246,21 @@ function createAssetBox(d) {
 	}
 
 	return group
+}
+
+function draggedStart(d) {
+	simulation.alphaTarget(0.3).restart()
+	d3.select(this).classed("fixed", d.fixed = true);
+	d.fx = d.x
+	d.fy = d.y
+}
+
+function dragged(d) {
+	d.fx = d3.event.x
+	d.fy = d3.event.y
+}
+
+function draggedEnd(d) {
+	if (!d3.event.active) simulation.alphaTarget(0);
+	d3.select(this).classed("fixed", d.fixed = false);
 }
