@@ -5,6 +5,9 @@ var height = svg.attr("height");
 var graph = {}
 
 var boxWidth = 160
+var labelHeight = 40
+var attackStepHeight = 30
+var sideMargin = 5
 
 var colors = [
 //	[Dark shade, light shade]
@@ -15,15 +18,15 @@ var colors = [
 ]
 
 var allAttackSteps = [
-	{name: "| access", parent: "Network", index: 0, children: [0]},
-	{name: "| connect", parent: "Host", index: 0, children: [1]},
-	{name: "| authenticate", parent: "Host", index: 1, children: [2]},
-	{name: "| guessPassword", parent: "Host", index: 2, children: [3]},
-	{name: "| guessedPassword", parent: "Host", index: 3, children: [4]},
-	{name: "& access", parent: "Host", index: 4, children: []},
-	{name: "| obtain", parent: "Password", index: 0, children: [5]},
-	{name: "| attemptPhishing", parent: "User", index: 0, children: [7]},
-	{name: "| phish", parent: "User", index: 1, children: [6]}
+	{name: "| access", parent: 0, index: 0, children: [0]},
+	{name: "| connect", parent: 1, index: 0, children: [1]},
+	{name: "| authenticate", parent: 1, index: 1, children: [2]},
+	{name: "| guessPassword", parent: 1, index: 2, children: [3]},
+	{name: "| guessedPassword", parent: 1, index: 3, children: [4]},
+	{name: "& access", parent: 1, index: 4, children: []},
+	{name: "| obtain", parent: 2, index: 0, children: [5]},
+	{name: "| attemptPhishing", parent: 3, index: 0, children: [7]},
+	{name: "| phish", parent: 3, index: 1, children: [6]}
 ]
 
 var relations = [
@@ -76,15 +79,15 @@ var assets = [
 var associations = [
 	{source: 0, target: 1, sdata: assets[0], tdata: assets[1]},
 	{source: 1, target: 2, sdata: assets[1], tdata: assets[2]},
-	{source: 1, target: 3, sdata: assets[1], tdata: assets[3]},
+	{source: 2, target: 3, sdata: assets[2], tdata: assets[3]},
 ]
 
 var simulation = d3.forceSimulation(assets)
 	.force('link', d3.forceLink().links(associations).distance(300))
 	.force('center', d3.forceCenter(width/2, height/2))
-	.force('charge', d3.forceManyBody().strength(-1000))
+	.force('charge', d3.forceManyBody().strength(-300))
 	.on('tick', ticked)
-
+	
 //Lines for associations
 graph.association = d3.select('svg')
 	.selectAll('line')
@@ -99,6 +102,24 @@ graph.asset = d3.select('svg')
 	.enter()
 	.append('g')
 graph.assetBox = graph.asset.append(createAssetBox)
+
+graph.attackPath = d3.select('svg')
+	.selectAll('line .path')
+	.data(relations)
+	.enter()
+graph.attackPathLink = graph.attackPath.append(function(d) {
+	if(d.source.parent == d.target.parent) {
+		return document.createElement('g')
+	}
+	var path = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+	path.setAttributeNS(null, 'x1', assets[d.source.parent].x)
+	path.setAttributeNS(null, 'y1', assets[d.source.parent].y)
+	path.setAttributeNS(null, 'x2', assets[d.target.parent].x)
+	path.setAttributeNS(null, 'y2', assets[d.target.parent].y)
+	path.setAttributeNS(null, 'stroke-width', 1.1)
+	path.setAttributeNS(null, 'stroke', 'black')
+	return path
+})
 
 function ticked() {
 	//Update Association link position
@@ -121,15 +142,29 @@ function ticked() {
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
 	});
+
+	//Update Attack path position
+	graph.attackPathLink.attr('x1', function(d) {
+		var x = assets[d.source.parent].x
+		return x + boxWidth/2
+	})
+	.attr('y1', function(d) {
+		var y = assets[d.source.parent].y
+		return y + (d.source.index * attackStepHeight) + 12 + labelHeight
+	})
+	.attr('x2', function(d) {
+		var x = assets[d.target.parent].x
+		return x - boxWidth/2
+	})
+	.attr('y2', function(d) {
+		var y = assets[d.target.parent].y
+		return y + (d.target.index * attackStepHeight) + 12 + labelHeight
+	})
 }
 
 //Function taking an asset object and returning a SVG element
 function createAssetBox(d) {
 	var group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-
-	var labelHeight = 40
-	var attackStepHeight = 30
-	var sideMargin = 5
 
 	//Boundning rectangle
 	var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
