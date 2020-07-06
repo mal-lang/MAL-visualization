@@ -85,7 +85,7 @@ var associations = [
 var simulation = d3.forceSimulation(assets)
 	.force('link', d3.forceLink().links(associations).strength(0))
 	.force('center', d3.forceCenter(width/2, height/2))
-	.force('charge', d3.forceManyBody().strength(-60))
+	.force('charge', d3.forceManyBody().strength(-200))
 	.on('tick', ticked)
 	
 //Lines for associations
@@ -94,6 +94,8 @@ graph.association = d3.select('svg')
 	.data(associations)
 	.enter()
 graph.associationLink = graph.association.append('line')
+	.attr('stroke-width', 2)
+	.style('stroke', 'gray')
 
 //SVG groups (g) for the assets
 graph.asset = d3.select('svg')
@@ -116,23 +118,19 @@ graph.attackPath = d3.select('svg')
 	.enter()
 graph.attackPathLink = graph.attackPath.append(function(d) {
 	if(d.source.parent == d.target.parent) {
-		return document.createElement('g')
+		return document.createElement('path')
 	}
-	var path = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-	path.setAttributeNS(null, 'x1', assets[d.source.parent].x)
-	path.setAttributeNS(null, 'y1', assets[d.source.parent].y)
-	path.setAttributeNS(null, 'x2', assets[d.target.parent].x)
-	path.setAttributeNS(null, 'y2', assets[d.target.parent].y)
+	var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 	path.setAttributeNS(null, 'stroke-width', 1.1)
 	path.setAttributeNS(null, 'stroke', 'black')
+	path.setAttributeNS(null, 'fill', 'transparent')
+	path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
 	return path
 })
 
 function ticked() {
 	//Update Association link position
-	graph.associationLink.attr('stroke-width', 2)
-		.style('stroke', 'gray')
-		.attr('x1', function(d) {
+	graph.associationLink.attr('x1', function(d) {
 			return d.source.x
 		})
 		.attr('y1', function(d) {
@@ -151,21 +149,28 @@ function ticked() {
 	});
 
 	//Update Attack path position
-	graph.attackPathLink.attr('x1', function(d) {
-		var x = assets[d.source.parent].x
-		return x + boxWidth/2
-	})
-	.attr('y1', function(d) {
-		var y = assets[d.source.parent].y
-		return y + (d.source.index * attackStepHeight) + 12 + labelHeight
-	})
-	.attr('x2', function(d) {
-		var x = assets[d.target.parent].x
-		return x - boxWidth/2
-	})
-	.attr('y2', function(d) {
-		var y = assets[d.target.parent].y
-		return y + (d.target.index * attackStepHeight) + 12 + labelHeight
+	graph.attackPathLink.attr('d', function(d) {
+		if(d.source.parent == d.target.parent) {
+			return
+		}
+		var controllBend = 125
+		if(assets[d.source.parent].x - assets[d.target.parent].x > 0) {
+			var x1 = assets[d.source.parent].x - boxWidth/2
+			var x2 = assets[d.target.parent].x + boxWidth/2 + 5
+			var c1 = x1 - controllBend
+			var c2 = x2 + controllBend
+		} else {
+			var x1 = assets[d.source.parent].x + boxWidth/2
+			var x2 = assets[d.target.parent].x - boxWidth/2 - 5
+			var c1 = x1 + controllBend
+			var c2 = x2 - controllBend
+		}
+		var y1 = assets[d.source.parent].y + (d.source.index * attackStepHeight) + 12 + labelHeight
+		var y2 = assets[d.target.parent].y + (d.target.index * attackStepHeight) + 12 + labelHeight
+
+		var z = "M " + x1 + " " + y1 + " C " + c1 + " " + y1 + " " + c2 + " " + y2 + " " + x2 + " " + y2
+		console.log(z)
+		return z
 	})
 }
 
