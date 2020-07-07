@@ -77,9 +77,9 @@ var assets = [
 ]
 
 var associations = [
-	{source: 0, target: 1, sdata: assets[0], tdata: assets[1]},
-	{source: 1, target: 2, sdata: assets[1], tdata: assets[2]},
-	{source: 2, target: 3, sdata: assets[2], tdata: assets[3]},
+	{source: 0, target: 1, sdata: assets[0], tdata: assets[1], name: "NetworkAccess"},
+	{source: 1, target: 2, sdata: assets[1], tdata: assets[2], name: "Credentials"},
+	{source: 2, target: 3, sdata: assets[2], tdata: assets[3], name: "Credentials"},
 ]
 
 var simulation = d3.forceSimulation(assets)
@@ -96,6 +96,16 @@ graph.association = d3.select('svg')
 graph.associationLink = graph.association.append('line')
 	.attr('stroke-width', 2)
 	.style('stroke', 'gray')
+
+//Association labels
+graph.associationLabel = d3.select('svg')
+	.selectAll('.associationLabel')
+	.data(associations)
+	.enter()
+graph.associationLabelText = graph.associationLabel.append('text')
+	.text(function(d) {
+		return d.name
+	})
 
 //SVG groups (g) for the assets
 graph.asset = d3.select('svg')
@@ -143,6 +153,15 @@ function ticked() {
 			return d.target.y + (30 * d.tdata.attackSteps.length + 40)/2
 		})
 
+	graph.associationLabelText.attr('x', function(d) {
+			return d.source.x + (d.target.x - d.source.x)/2 + 15
+		})
+		.attr('y', function(d) {
+			var ys = d.source.y + (30 * d.sdata.attackSteps.length + 40)/2
+			var yt = d.target.y + (30 * d.tdata.attackSteps.length + 40)/2
+			return ys + (yt - ys)/2
+		})
+
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
@@ -154,7 +173,21 @@ function ticked() {
 			return
 		}
 		var controllBend = 125
-		if(assets[d.source.parent].x - assets[d.target.parent].x > 0) {
+		//Decide if connect to Attack Steps on left or right side
+		if(Math.abs(assets[d.source.parent].x - assets[d.target.parent].x) < boxWidth/2) {
+			if(assets[d.source.parent].x < width/2) {
+				var x1 = assets[d.source.parent].x - boxWidth/2
+				var x2 = assets[d.target.parent].x - boxWidth/2 - 5
+				var c1 = x1 - controllBend
+				var c2 = x2 - controllBend
+			} else {
+				var x1 = assets[d.source.parent].x + boxWidth/2
+				var x2 = assets[d.target.parent].x + boxWidth/2 + 5
+				var c1 = x1 + controllBend
+				var c2 = x2 + controllBend
+			}
+		}
+		else if(assets[d.source.parent].x - assets[d.target.parent].x > 0) {
 			var x1 = assets[d.source.parent].x - boxWidth/2
 			var x2 = assets[d.target.parent].x + boxWidth/2 + 5
 			var c1 = x1 - controllBend
