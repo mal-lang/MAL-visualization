@@ -17,77 +17,17 @@ var colors = [
 	["#553A49", "#9C6D87"]
 ]
 
-var allAttackSteps = [
-	{name: "| access", parent: 0, index: 0, children: [0]},
-	{name: "| connect", parent: 1, index: 0, children: [1]},
-	{name: "| authenticate", parent: 1, index: 1, children: [2]},
-	{name: "| guessPassword", parent: 1, index: 2, children: [3]},
-	{name: "| guessedPassword", parent: 1, index: 3, children: [4]},
-	{name: "& access", parent: 1, index: 4, children: []},
-	{name: "| obtain", parent: 2, index: 0, children: [5]},
-	{name: "| attemptPhishing", parent: 3, index: 0, children: [7]},
-	{name: "| phish", parent: 3, index: 1, children: [6]}
-]
-
-var relations = [
-	{source: allAttackSteps[0], target: allAttackSteps[1]},
-	{source: allAttackSteps[1], target: allAttackSteps[5]},
-	{source: allAttackSteps[2], target: allAttackSteps[5]},
-	{source: allAttackSteps[3], target: allAttackSteps[4]},
-	{source: allAttackSteps[4], target: allAttackSteps[2]},
-	{source: allAttackSteps[6], target: allAttackSteps[2]},
-	{source: allAttackSteps[8], target: allAttackSteps[6]},
-	{source: allAttackSteps[7], target: allAttackSteps[8]},
-]
-
-var assets = [
-	{
-		name: "Network",
-		attackSteps: [
-			allAttackSteps[0]
-		],
-		color: 0
-	},
-	{
-		name: "Host",
-		attackSteps: [
-			allAttackSteps[1],
-			allAttackSteps[2],
-			allAttackSteps[3],
-			allAttackSteps[4],
-			allAttackSteps[5]
-		],
-		color: 1
-	},
-	{
-		name: "Password",
-		attackSteps: [
-			allAttackSteps[6]
-		],
-		color: 2
-	},
-	{
-		name: "User",
-		attackSteps: [
-			allAttackSteps[7],
-			allAttackSteps[8]
-		],
-		color: 3
-	}
-]
-
-var associations = [
-	{source: 0, target: 1, sdata: assets[0], tdata: assets[1], name: "NetworkAccess"},
-	{source: 1, target: 2, sdata: assets[1], tdata: assets[2], name: "Credentials"},
-	{source: 2, target: 3, sdata: assets[2], tdata: assets[3], name: "Credentials"},
-]
+var assets = data.assets
+var attackSteps = data.attackSteps
+var relations = data.attackPaths
+var associations = data.associations
 
 var simulation = d3.forceSimulation(assets)
 	.force('link', d3.forceLink().links(associations).strength(0.01))
 	.force('center', d3.forceCenter(width/2, height/2))
-	.force('charge', d3.forceManyBody().strength(-800))
+	.force('charge', d3.forceManyBody().strength(-600))
 	.on('tick', ticked)
-	
+
 //Lines for associations
 graph.association = d3.select('svg')
 	.selectAll('line')
@@ -127,7 +67,7 @@ graph.attackPath = d3.select('svg')
 	.data(relations)
 	.enter()
 graph.attackPathLink = graph.attackPath.append(function(d) {
-	if(d.source.parent == d.target.parent) {
+	if(attackSteps[d.source].parent == attackSteps[d.target].parent) {
 		return document.createElement('path')
 	}
 	var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
@@ -144,21 +84,21 @@ function ticked() {
 			return d.source.x
 		})
 		.attr('y1', function(d) {
-			return d.source.y + (30 * d.sdata.attackSteps.length + 40)/2
+			return d.source.y + (30 * d.source.attackSteps.length + 40)/2
 		})
 		.attr('x2', function(d) {
 			return d.target.x
 		})
 		.attr('y2', function(d) {
-			return d.target.y + (30 * d.tdata.attackSteps.length + 40)/2
+			return d.target.y + (30 * d.target.attackSteps.length + 40)/2
 		})
 
 	graph.associationLabelText.attr('x', function(d) {
 			return d.source.x + (d.target.x - d.source.x)/2 + 15
 		})
 		.attr('y', function(d) {
-			var ys = d.source.y + (30 * d.sdata.attackSteps.length + 40)/2
-			var yt = d.target.y + (30 * d.tdata.attackSteps.length + 40)/2
+			var ys = d.source.y + (30 * d.source.attackSteps.length + 40)/2
+			var yt = d.target.y + (30 * d.target.attackSteps.length + 40)/2
 			return ys + (yt - ys)/2
 		})
 
@@ -169,37 +109,38 @@ function ticked() {
 
 	//Update Attack path position
 	graph.attackPathLink.attr('d', function(d) {
-		if(d.source.parent == d.target.parent) {
+		if(attackSteps[d.source].parent == attackSteps[d.target].parent) {
 			return
 		}
 		var controllBend = 125
 		//Decide if connect to Attack Steps on left or right side
-		if(Math.abs(assets[d.source.parent].x - assets[d.target.parent].x) < boxWidth/2) {
-			if(assets[d.source.parent].x < width/2) {
-				var x1 = assets[d.source.parent].x - boxWidth/2
-				var x2 = assets[d.target.parent].x - boxWidth/2 - 5
+		if(Math.abs(assets[attackSteps[d.source].parent].x - 
+					assets[attackSteps[d.target].parent].x) < boxWidth/2) {
+			if(assets[attackSteps[d.source].parent].x < width/2) {
+				var x1 = assets[attackSteps[d.source].parent].x - boxWidth/2
+				var x2 = assets[attackSteps[d.target].parent].x - boxWidth/2 - 5
 				var c1 = x1 - controllBend
 				var c2 = x2 - controllBend
 			} else {
-				var x1 = assets[d.source.parent].x + boxWidth/2
-				var x2 = assets[d.target.parent].x + boxWidth/2 + 5
+				var x1 = assets[attackSteps[d.source].parent].x + boxWidth/2
+				var x2 = assets[attackSteps[d.target].parent].x + boxWidth/2 + 5
 				var c1 = x1 + controllBend
 				var c2 = x2 + controllBend
 			}
 		}
-		else if(assets[d.source.parent].x - assets[d.target.parent].x > 0) {
-			var x1 = assets[d.source.parent].x - boxWidth/2
-			var x2 = assets[d.target.parent].x + boxWidth/2 + 5
+		else if(assets[attackSteps[d.source].parent].x - assets[attackSteps[d.target].parent].x > 0) {
+			var x1 = assets[attackSteps[d.source].parent].x - boxWidth/2
+			var x2 = assets[attackSteps[d.target].parent].x + boxWidth/2 + 5
 			var c1 = x1 - controllBend
 			var c2 = x2 + controllBend
 		} else {
-			var x1 = assets[d.source.parent].x + boxWidth/2
-			var x2 = assets[d.target.parent].x - boxWidth/2 - 5
+			var x1 = assets[attackSteps[d.source].parent].x + boxWidth/2
+			var x2 = assets[attackSteps[d.target].parent].x - boxWidth/2 - 5
 			var c1 = x1 + controllBend
 			var c2 = x2 - controllBend
 		}
-		var y1 = assets[d.source.parent].y + (d.source.index * attackStepHeight) + 12 + labelHeight
-		var y2 = assets[d.target.parent].y + (d.target.index * attackStepHeight) + 12 + labelHeight
+		var y1 = assets[attackSteps[d.source].parent].y + (attackSteps[d.source].index * attackStepHeight) + 12 + labelHeight
+		var y2 = assets[attackSteps[d.target].parent].y + (attackSteps[d.target].index * attackStepHeight) + 12 + labelHeight
 
 		return "M " + x1 + " " + y1 + " C " + c1 + " " + y1 + " " + c2 + " " + y2 + " " + x2 + " " + y2
 	})
@@ -230,7 +171,7 @@ function createAssetBox(d) {
 	group.appendChild(label)
 
 	for(step in d.attackSteps) {
-		var attackStep = d.attackSteps[step]
+		var attackStep = attackSteps[d.attackSteps[step]]
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
 		asbox.setAttributeNS(null, 'fill', colors[d.color][1])
@@ -252,23 +193,23 @@ function createAssetBox(d) {
 
 	//Draw internal Attack paths
 	for(step in d.attackSteps) {
-		var attackStep = d.attackSteps[step]
+		var attackStep = attackSteps[d.attackSteps[step]]
 		for(child in attackStep.children) {
 			relation = relations[attackStep.children[child]]
-			if(relation.source.parent == relation.target.parent) {
+			if(attackSteps[relation.source].parent == attackSteps[relation.target].parent) {
 				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)
-				var yt = (relation.target.index * attackStepHeight + labelHeight + 12)
+				var yt = (attackSteps[relation.target].index * attackStepHeight + labelHeight + 12)
 				var bend = 8
-				if(relation.source.index < relation.target.index) {
+				if(attackSteps[relation.source].index < attackSteps[relation.target].index) {
 					var start = "M " + (boxWidth-sideMargin) + " " + ys + " "
-					var c1 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(relation.source.index - relation.target.index))) + " " + ys
-					var c2 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(relation.source.index - relation.target.index))) + " " + yt
+					var c1 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + ys
+					var c2 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + yt
 					var end = (boxWidth - sideMargin + 5) + " " + yt
 				} else {
 					var start = "M " + sideMargin + " " + ys + " "
-					var c1 = "" + (sideMargin - 20 - (bend*Math.abs(relation.source.index - relation.target.index))) + " " + ys
-					var c2 = "" + (sideMargin - 20 - (bend*Math.abs(relation.source.index - relation.target.index))) + " " + yt
+					var c1 = "" + (sideMargin - 20 - (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + ys
+					var c2 = "" + (sideMargin - 20 - (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + yt
 					var end = (sideMargin - 5) + " " + yt
 				}
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
