@@ -17,27 +17,32 @@ var colors = [
 	["#553A49", "#9C6D87"]
 ]
 
-var assets = data.assets
-var attackSteps = data.attackSteps
-var relations = data.attackPaths
-var associations = data.associations
+var root = {"children":[{"name":"Network","children":[{"name":"access","type":"or","targets":[{"name":"connect","entity_name":"Host","size":4000}]}]},{"name":"Host","children":[{"name":"connect","type":"or","targets":[{"name":"access","entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","entity_name":"Password","size":4000}]}]},{"name":"Password","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host"},{"source":"Host","target":"Password"},{"source":"User","target":"Password"}]}
 
-var simulation = d3.forceSimulation(assets)
-	.force('link', d3.forceLink().links(associations).strength(0.01))
+initialize(root);
+set_id(root);
+var relations = makeRelations(root);
+setAssociationId(root);
+
+var simulation = d3.forceSimulation(root.children)
+	.force('link', d3.forceLink().links(root.associations).strength(0.01))
 	.force('center', d3.forceCenter(width/2, height/2))
-	.force('charge', d3.forceManyBody().strength(-600))
+    .force('charge', d3.forceManyBody().strength(-600))
+    .force('x', d3.forceX(width/2).strength(0.0125))
+    .force('y', d3.forceY(height/2).strength(0.0275))
 	.on('tick', ticked)
 
 //Lines for associations
 graph.association = d3.select('svg')
 	.selectAll('line')
-	.data(associations)
+	.data(root.associations)
 	.enter()
 graph.associationLink = graph.association.append('line')
 	.attr('stroke-width', 2)
-	.style('stroke', 'gray')
+	.style('stroke', 'grey')
 
 //Association labels
+/*
 graph.associationLabel = d3.select('svg')
 	.selectAll('.associationLabel')
 	.data(associations)
@@ -46,11 +51,12 @@ graph.associationLabelText = graph.associationLabel.append('text')
 	.text(function(d) {
 		return d.name
 	})
+*/
 
 //SVG groups (g) for the assets
 graph.asset = d3.select('svg')
 	.selectAll('g')
-	.data(assets)
+	.data(root.children)
 	.enter()
 	.append('g')
 graph.assetBox = graph.asset.append(createAssetBox)
@@ -65,9 +71,10 @@ graph.asset.call(drag)
 graph.attackPath = d3.select('svg')
 	.selectAll('line .path')
 	.data(relations)
-	.enter()
+    .enter()
+    
 graph.attackPathLink = graph.attackPath.append(function(d) {
-	if(attackSteps[d.source].parent == attackSteps[d.target].parent) {
+	if(d.source.entity.name == d.target.entity.name) {
 		return document.createElement('path')
 	}
 	var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
@@ -84,15 +91,15 @@ function ticked() {
 			return d.source.x
 		})
 		.attr('y1', function(d) {
-			return d.source.y + (30 * d.source.attackSteps.length + 40)/2
+			return d.source.y + (30 * d.source.children.length + 40)/2
 		})
 		.attr('x2', function(d) {
 			return d.target.x
 		})
 		.attr('y2', function(d) {
-			return d.target.y + (30 * d.target.attackSteps.length + 40)/2
+			return d.target.y + (30 * d.target.children.length + 40)/2
 		})
-
+	/*
 	graph.associationLabelText.attr('x', function(d) {
 			return d.source.x + (d.target.x - d.source.x)/2 + 15
 		})
@@ -101,60 +108,63 @@ function ticked() {
 			var yt = d.target.y + (30 * d.target.attackSteps.length + 40)/2
 			return ys + (yt - ys)/2
 		})
-
+    */
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
-	});
+    });
 
-	//Update Attack path position
+    //Update Attack path position
 	graph.attackPathLink.attr('d', function(d) {
-		if(attackSteps[d.source].parent == attackSteps[d.target].parent) {
+		if(d.source.entity.name == d.target.entity.name) {
 			return
 		}
-		var controllBend = 125
+        var controllBend = 125
 		//Decide if connect to Attack Steps on left or right side
-		if(Math.abs(assets[attackSteps[d.source].parent].x - 
-					assets[attackSteps[d.target].parent].x) < boxWidth/2) {
-			if(assets[attackSteps[d.source].parent].x < width/2) {
-				var x1 = assets[attackSteps[d.source].parent].x - boxWidth/2
-				var x2 = assets[attackSteps[d.target].parent].x - boxWidth/2 - 5
+		if(Math.abs(d.source.entity.x - 
+					d.target.entity.x) < boxWidth/2) {
+			if(d.source.entity.x < width/2) {
+				var x1 = d.source.entity.x - boxWidth/2
+				var x2 = d.target.entity.x - boxWidth/2 - 5
 				var c1 = x1 - controllBend
 				var c2 = x2 - controllBend
 			} else {
-				var x1 = assets[attackSteps[d.source].parent].x + boxWidth/2
-				var x2 = assets[attackSteps[d.target].parent].x + boxWidth/2 + 5
+				var x1 = d.source.entity.x + boxWidth/2
+				var x2 = d.target.entity.x + boxWidth/2 + 5
 				var c1 = x1 + controllBend
 				var c2 = x2 + controllBend
 			}
 		}
-		else if(assets[attackSteps[d.source].parent].x - assets[attackSteps[d.target].parent].x > 0) {
-			var x1 = assets[attackSteps[d.source].parent].x - boxWidth/2
-			var x2 = assets[attackSteps[d.target].parent].x + boxWidth/2 + 5
+		else if(d.source.entity.x - d.target.entity.x > 0) {
+			var x1 = d.source.entity.x - boxWidth/2
+			var x2 = d.target.entity.x + boxWidth/2 + 5
 			var c1 = x1 - controllBend
 			var c2 = x2 + controllBend
 		} else {
-			var x1 = assets[attackSteps[d.source].parent].x + boxWidth/2
-			var x2 = assets[attackSteps[d.target].parent].x - boxWidth/2 - 5
+			var x1 = d.source.entity.x + boxWidth/2
+			var x2 = d.target.entity.x - boxWidth/2 - 5
 			var c1 = x1 + controllBend
 			var c2 = x2 - controllBend
-		}
-		var y1 = assets[attackSteps[d.source].parent].y + (attackSteps[d.source].index * attackStepHeight) + 12 + labelHeight
-		var y2 = assets[attackSteps[d.target].parent].y + (attackSteps[d.target].index * attackStepHeight) + 12 + labelHeight
+        }
+		var y1 = d.source.entity.y + (d.source.index * attackStepHeight) + 12 + labelHeight
+		var y2 = d.target.entity.y + (d.target.index * attackStepHeight) + 12 + labelHeight
 
 		return "M " + x1 + " " + y1 + " C " + c1 + " " + y1 + " " + c2 + " " + y2 + " " + x2 + " " + y2
-	})
+    })
 }
 
 //Function taking an asset object and returning a SVG element
 function createAssetBox(d) {
+    if(!d.children) {
+        d.children = []
+    }
 	var group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
 
 	//Boundning rectangle
-	var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-	rect.setAttributeNS(null, 'fill', colors[d.color][0])
-	rect.setAttributeNS(null, 'width', boxWidth)
-	rect.setAttributeNS(null, 'height', attackStepHeight * d.attackSteps.length + labelHeight)
+    var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+	rect.setAttributeNS(null, 'fill', colors[d.id%colors.length][0])
+    rect.setAttributeNS(null, 'width', boxWidth)
+	rect.setAttributeNS(null, 'height', attackStepHeight * d.children.length + labelHeight)
 	rect.setAttributeNS(null, 'rx', 5)
 	rect.setAttributeNS(null, 'ry', 5)
 	group.appendChild(rect)
@@ -169,12 +179,12 @@ function createAssetBox(d) {
 	label.setAttributeNS(null, 'font-family', 'Arial')
 	label.setAttributeNS(null, 'fill', 'white')
 	group.appendChild(label)
-
-	for(step in d.attackSteps) {
-		var attackStep = attackSteps[d.attackSteps[step]]
+	for(step in d.children) {
+        var attackStep = d.children[step]
+        attackStep.index = parseInt(step)
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-		asbox.setAttributeNS(null, 'fill', colors[d.color][1])
+		asbox.setAttributeNS(null, 'fill', colors[d.id%colors.length][1])
 		asbox.setAttributeNS(null, 'x', sideMargin)
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
 		asbox.setAttributeNS(null, 'width', boxWidth - sideMargin * 2)
@@ -189,28 +199,28 @@ function createAssetBox(d) {
 		text.setAttributeNS(null, 'font-family', 'Arial')
 		text.setAttributeNS(null, 'fill', 'black')
 		group.appendChild(text)
-	}
-
+    }
+    
 	//Draw internal Attack paths
-	for(step in d.attackSteps) {
-		var attackStep = attackSteps[d.attackSteps[step]]
-		for(child in attackStep.children) {
-			relation = relations[attackStep.children[child]]
-			if(attackSteps[relation.source].parent == attackSteps[relation.target].parent) {
+	for(step in d.children) {
+        var attackStep = d.children[step]
+		for(child in attackStep.targets) {
+            relation = attackStep.target_steps[child]
+			if(attackStep.entity.name == relation.entity.name) {
 				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)
-				var yt = (attackSteps[relation.target].index * attackStepHeight + labelHeight + 12)
-				var bend = 8
-				if(attackSteps[relation.source].index < attackSteps[relation.target].index) {
+				var yt = (relation.index * attackStepHeight + labelHeight + 12)
+                var bend = 8
+				if(attackStep.index < relation.index) {
 					var start = "M " + (boxWidth-sideMargin) + " " + ys + " "
-					var c1 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + ys
-					var c2 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + yt
+					var c1 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackStep.index - relation.index))) + " " + ys
+					var c2 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackStep.index - relation.index))) + " " + yt
 					var end = (boxWidth - sideMargin + 5) + " " + yt
 				} else {
 					var start = "M " + sideMargin + " " + ys + " "
-					var c1 = "" + (sideMargin - 20 - (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + ys
-					var c2 = "" + (sideMargin - 20 - (bend*Math.abs(attackSteps[relation.source].index - attackSteps[relation.target].index))) + " " + yt
-					var end = (sideMargin - 5) + " " + yt
+					var c1 = "" + ((sideMargin) - 20 - (bend*Math.abs(attackStep.index - relation.index))) + " " + ys
+                    var c2 = "" + ((sideMargin) - 20 - (bend*Math.abs(attackStep.index - relation.index))) + " " + yt
+                    var end = (sideMargin - 5) + " " + yt
 				}
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
 				line.setAttributeNS(null, 'stroke-width', 1.1)
@@ -220,13 +230,13 @@ function createAssetBox(d) {
 				group.appendChild(line)
 			}
 		}
-	}
+    }
 
 	return group
 }
 
 function draggedStart(d) {
-	simulation.alphaTarget(0.3).restart()
+	simulation.alphaTarget(0.1).restart()
 	d.fixed = true
 	d.fx = d.x
 	d.fy = d.y
@@ -240,4 +250,113 @@ function dragged(d) {
 function draggedEnd(d) {
 	if (!d3.event.active) simulation.alphaTarget(0);
 	d.fixed = false
+}
+
+// Returns a list of all nodes under the root.
+function set_id(root) {
+    i = 0;
+
+    function recurse(node) {
+        if (node.children) node.children.forEach(recurse);
+        if (!node.id) node.id = ++i;
+        node.show = false
+        node.selected = false
+    }
+
+    recurse(root);
+}
+
+function setAssociationId(root) {
+	idMap = {}
+	if (root.children) {
+        root.children.forEach(function(entity, i) {
+			idMap[entity.name] = i
+		})
+	}
+	if (root.associations) {
+        root.associations.forEach(function(association) {
+			association.source = idMap[association.source]
+			association.target = idMap[association.target]
+		})
+	}
+}
+
+function makeRelations(root) {
+    relations = []
+    if (root.children) {
+        root.children.forEach(function(entity) {
+            if (entity.children) {
+                entity.children.forEach(function(attackStep) {
+                    if (attackStep.target_steps) {
+                        attackStep.target_steps.forEach(function(target) {
+                            relation = {source: attackStep, target: target}
+                            relations.push(relation)
+                        })
+                    }
+                })
+            }
+        })
+    }
+    return relations
+}
+
+function initialize(root) {
+
+    nodes = []
+    nodes.push(root);
+    root.opacity = 0.0
+    if (root.children) {
+        root.children.forEach(function(entity) {
+            entity.hidden = false;
+            nodes.push(entity);
+            if (entity.children) {
+                entity.children.forEach(function(attack_step) {
+                    attack_step.target_steps = []
+                    attack_step.source_steps = []
+                    attack_step.entity = entity
+                    attack_step.hidden = false;
+                    nodes.push(attack_step);
+                })
+            }
+        })
+    }
+
+    if (root.children) {
+        root.children.forEach(function(entity) {
+            if (entity.children) {
+                entity.children.forEach(function(attack_step) {
+                    //attack_step.color = color(entity.name)
+                    attack_step.opacity = 1
+                    if (attack_step.targets) {
+                        attack_step.targets.forEach(function(target_ref) {
+                            var target = nodes.filter(function(attack_step) {
+                                return attack_step.name == target_ref.name && attack_step.entity.name == target_ref.entity_name;
+                            })[0]
+                            if (target) {
+                                attack_step.target_steps.push(target)
+                                target.source_steps.push(attack_step)
+                            }
+                        })
+                    }
+                    //entity.color = color(entity.name)
+                    entity.opacity = 0.75
+                })
+            }
+        })
+    }
+
+    d3.select("body").on('keydown', function() {
+        if (d3.event.keyCode === 32) {
+            if (root.children) {
+                root.children.forEach(function(entity) {
+                    if (entity.hidden) {
+                        entity.hidden = false;
+                    } else {
+                        entity.hidden = true;
+                    }
+                    update();
+                })
+            }
+        }
+    })
 }
