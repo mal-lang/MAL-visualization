@@ -4,10 +4,10 @@ var width = svg.attr("width")
 var height = svg.attr("height");
 var graph = {}
 
-var boxWidth = 260
+var boxWidth = 300
 var labelHeight = 40
 var attackStepHeight = 30
-var sideMargin = 50
+var sideMargin = 75
 
 var colors = [
 //	[Dark shade, light shade]
@@ -27,7 +27,7 @@ setAssociationId(root);
 var simulation = d3.forceSimulation(root.children)
 	.force('link', d3.forceLink().links(root.associations).strength(0.01))
 	.force('center', d3.forceCenter(width/2, height/2))
-    .force('charge', d3.forceManyBody().strength(-600))
+    .force('collide', d3.forceCollide(200))
     .force('x', d3.forceX(width/2).strength(0.0125))
     .force('y', d3.forceY(height/2).strength(0.0275))
 	.on('tick', ticked)
@@ -40,18 +40,10 @@ graph.association = d3.select('svg')
 graph.associationLink = graph.association.append('line')
 	.attr('stroke-width', 2)
 	.style('stroke', 'grey')
-
-//Association labels
-/*
-graph.associationLabel = d3.select('svg')
-	.selectAll('.associationLabel')
-	.data(associations)
-	.enter()
-graph.associationLabelText = graph.associationLabel.append('text')
-	.text(function(d) {
-		return d.name
+	.attr('class', function(d) {
+		return "association association_" + d.source.name + 
+			" association_" + d.target.name
 	})
-*/
 
 //SVG groups (g) for the assets
 graph.asset = d3.select('svg')
@@ -59,7 +51,40 @@ graph.asset = d3.select('svg')
 	.data(root.children)
 	.enter()
 	.append('g')
+	.on("mouseover", function(d) {
+		//Visibility and opacity to focus an Asset
+		d3.selectAll('.asset_path').attr("visibility","hidden")
+		d3.selectAll('.asset_path_' + d.name).attr("visibility","visible")
+		d3.selectAll('.asset').attr("opacity", "0.2")
+		d3.selectAll('.asset_' + d.name).attr("opacity","1.0")
+		d3.selectAll('.association').attr("opacity", "0.0")
+		d3.selectAll('.association_' + d.name).attr("opacity", "1.0")
+	})
+	.on("mouseout", function(d) {
+		d3.selectAll('.asset_path').attr("visibility","visible")
+		d3.selectAll('.asset').attr("opacity", "1.0")
+		d3.selectAll('.association').attr("opacity", "1.0")
+	})
 graph.assetBox = graph.asset.append(createAssetBox)
+	.attr("class", (d) => {
+		//Set classes to related assets
+		classes = []
+		if(d.children){
+			d.children.forEach(function(attackStep) {
+				if(attackStep.source_steps){
+					attackStep.source_steps.forEach(function(source) {
+						classes.push(" asset_" + source.entity.name)
+					})
+				}
+				if(attackStep.target_steps){
+					attackStep.target_steps.forEach(function(target) {
+						classes.push(" asset_" + target.entity.name)
+					})
+				}
+			})
+		}
+		return "asset asset_" + d.name + classes.join("")
+	})
 
 var drag = d3.drag()
 	.on("start", draggedStart)
@@ -74,16 +99,20 @@ graph.attackPath = d3.select('svg')
     .enter()
     
 graph.attackPathLink = graph.attackPath.append(function(d) {
-	if(d.source.entity.name == d.target.entity.name) {
-		return document.createElement('path')
-	}
-	var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-	path.setAttributeNS(null, 'stroke-width', 1.1)
-	path.setAttributeNS(null, 'stroke', 'black')
-	path.setAttributeNS(null, 'fill', 'transparent')
-	path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
-	return path
-})
+		if(d.source.entity.name == d.target.entity.name) {
+			return document.createElement('path')
+		}
+		var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+		path.setAttributeNS(null, 'stroke-width', 1.1)
+		path.setAttributeNS(null, 'stroke', 'black')
+		path.setAttributeNS(null, 'fill', 'transparent')
+		path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
+		path.setAttributeNS(null, 'class', 'asset_path' +
+								' asset_path_' + d.source.entity.name + 
+								" asset_path_" + d.target.entity.name)
+		path.setAttributeNS(null, 'visibility', 'visible')
+		return path
+	})
 
 function ticked() {
 	//Update Association link position
@@ -99,20 +128,11 @@ function ticked() {
 		.attr('y2', function(d) {
 			return d.target.y + (30 * d.target.children.length + 40)/2
 		})
-	/*
-	graph.associationLabelText.attr('x', function(d) {
-			return d.source.x + (d.target.x - d.source.x)/2 + 15
-		})
-		.attr('y', function(d) {
-			var ys = d.source.y + (30 * d.source.attackSteps.length + 40)/2
-			var yt = d.target.y + (30 * d.target.attackSteps.length + 40)/2
-			return ys + (yt - ys)/2
-		})
-    */
+
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
-    });
+	})
 
     //Update Attack path position
 	graph.attackPathLink.attr('d', function(d) {
@@ -146,11 +166,15 @@ function ticked() {
 			var c1 = x1 + controllBend
 			var c2 = x2 - controllBend
         }
-		var y1 = d.source.entity.y + (d.source.index * attackStepHeight) + 12 + labelHeight
-		var y2 = d.target.entity.y + (d.target.index * attackStepHeight) + 12 + labelHeight
+		var y1 = d.source.entity.y + 
+				(d.source.index * attackStepHeight) + 12 + labelHeight
+		var y2 = d.target.entity.y + 
+				(d.target.index * attackStepHeight) + 12 + labelHeight
 
-		return "M " + x1 + " " + y1 + " C " + c1 + " " + y1 + " " + c2 + " " + y2 + " " + x2 + " " + y2
-    })
+		return "M " + x1 + " " + y1 + 
+			" C " + c1 + " " + y1 + " " + 
+			c2 + " " + y2 + " " + x2 + " " + y2
+	})
 }
 
 //Function taking an asset object and returning a SVG element
@@ -164,7 +188,10 @@ function createAssetBox(d) {
     var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
 	rect.setAttributeNS(null, 'fill', colors[d.id%colors.length][0])
     rect.setAttributeNS(null, 'width', boxWidth)
-	rect.setAttributeNS(null, 'height', attackStepHeight * d.children.length + labelHeight)
+	rect.setAttributeNS(
+		null, 
+		'height', 
+		attackStepHeight * d.children.length + labelHeight)
 	rect.setAttributeNS(null, 'rx', 5)
 	rect.setAttributeNS(null, 'ry', 5)
 	group.appendChild(rect)
@@ -180,7 +207,7 @@ function createAssetBox(d) {
 	label.setAttributeNS(null, 'fill', 'white')
 	group.appendChild(label)
 	for(step in d.children) {
-        var attackStep = d.children[step]
+		var attackStep = d.children[step]
         attackStep.index = parseInt(step)
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
@@ -189,10 +216,17 @@ function createAssetBox(d) {
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
 		asbox.setAttributeNS(null, 'width', boxWidth - sideMargin * 2)
 		asbox.setAttributeNS(null, 'height', attackStepHeight - 5)
+		asbox.setAttributeNS(null, 'class', 'asset_' + d.name)
 		group.append(asbox)
 		//Name of each Attack Step
 		var text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-		text.textContent = attackStep.name;
+		if(attackStep.type == "or") {
+			text.textContent = "| " + attackStep.name;
+		} else if(attackStep.type == "and") {
+			text.textContent = "& " + attackStep.name;
+		} else {
+			text.textContent = attackStep.name;
+		}
 		text.setAttributeNS(null, 'x', boxWidth/2)
 		text.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight + 17)
 		text.setAttributeNS(null, 'text-anchor', 'middle')
@@ -213,13 +247,17 @@ function createAssetBox(d) {
                 var bend = 8
 				if(attackStep.index < relation.index) {
 					var start = "M " + (boxWidth-sideMargin) + " " + ys + " "
-					var c1 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackStep.index - relation.index))) + " " + ys
-					var c2 = "" + ((boxWidth-sideMargin) + 20 + (bend*Math.abs(attackStep.index - relation.index))) + " " + yt
+					var c1 = "" + ((boxWidth-sideMargin) + 20 + 
+							(bend*Math.abs(attackStep.index - relation.index))) + " " + ys
+					var c2 = "" + ((boxWidth-sideMargin) + 20 + 
+							(bend*Math.abs(attackStep.index - relation.index))) + " " + yt
 					var end = (boxWidth - sideMargin + 5) + " " + yt
 				} else {
 					var start = "M " + sideMargin + " " + ys + " "
-					var c1 = "" + ((sideMargin) - 20 - (bend*Math.abs(attackStep.index - relation.index))) + " " + ys
-                    var c2 = "" + ((sideMargin) - 20 - (bend*Math.abs(attackStep.index - relation.index))) + " " + yt
+					var c1 = "" + ((sideMargin) - 20 - 
+							(bend*Math.abs(attackStep.index - relation.index))) + " " + ys
+					var c2 = "" + ((sideMargin) - 20 - 
+							(bend*Math.abs(attackStep.index - relation.index))) + " " + yt
                     var end = (sideMargin - 5) + " " + yt
 				}
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
@@ -236,7 +274,7 @@ function createAssetBox(d) {
 }
 
 function draggedStart(d) {
-	simulation.alphaTarget(0.1).restart()
+	simulation.alphaTarget(1.0).restart()
 	d.fixed = true
 	d.fx = d.x
 	d.fy = d.y
@@ -330,7 +368,8 @@ function initialize(root) {
                     if (attack_step.targets) {
                         attack_step.targets.forEach(function(target_ref) {
                             var target = nodes.filter(function(attack_step) {
-                                return attack_step.name == target_ref.name && attack_step.entity.name == target_ref.entity_name;
+								return attack_step.name == target_ref.name && 
+									attack_step.entity.name == target_ref.entity_name;
                             })[0]
                             if (target) {
                                 attack_step.target_steps.push(target)
