@@ -27,7 +27,7 @@ setAssociationId(root);
 var simulation = d3.forceSimulation(root.children)
 	.force('link', d3.forceLink().links(root.associations).strength(0.01))
 	.force('center', d3.forceCenter(width/2, height/2))
-    .force('collide', d3.forceCollide(200))
+    .force('collide', d3.forceCollide(150))
     .force('x', d3.forceX(width/2).strength(0.0125))
     .force('y', d3.forceY(height/2).strength(0.0275))
 	.on('tick', ticked)
@@ -212,9 +212,9 @@ function createAssetBox(d) {
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
 		asbox.setAttributeNS(null, 'fill', colors[d.id%colors.length][1])
-		asbox.setAttributeNS(null, 'x', sideMargin)
+		asbox.setAttributeNS(null, 'x', 0)
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
-		asbox.setAttributeNS(null, 'width', boxWidth - sideMargin * 2)
+		asbox.setAttributeNS(null, 'width', boxWidth)
 		asbox.setAttributeNS(null, 'height', attackStepHeight - 5)
 		asbox.setAttributeNS(null, 'class', 'asset_' + d.name)
 		group.append(asbox)
@@ -226,6 +226,9 @@ function createAssetBox(d) {
 			text.textContent = "& " + attackStep.name;
 		} else {
 			text.textContent = attackStep.name;
+		}
+		if(text.textContent.length > 19) {
+			text.textContent = text.textContent.substring(0, 16) + "..."
 		}
 		text.setAttributeNS(null, 'x', boxWidth/2)
 		text.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight + 17)
