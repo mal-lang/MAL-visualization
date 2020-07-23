@@ -25,98 +25,109 @@ var relations = makeRelations(root);
 setAssociationId(root);
 
 var simulation = d3.forceSimulation(root.children)
-	.force('link', d3.forceLink().links(root.associations).strength(0.01))
+	.force('link', d3.forceLink().links(root.associations))
 	.force('center', d3.forceCenter(width/2, height/2))
-    .force('collide', d3.forceCollide(150))
-    .force('x', d3.forceX(width/2).strength(0.0125))
-    .force('y', d3.forceY(height/2).strength(0.0275))
+    .force('collide', d3.forceCollide(180))
 	.on('tick', ticked)
 
-//Lines for associations
-graph.association = d3.select('svg')
-	.selectAll('line')
-	.data(root.associations)
-	.enter()
-graph.associationLink = graph.association.append('line')
-	.attr('stroke-width', 2)
-	.style('stroke', 'grey')
-	.attr('class', function(d) {
-		return "association association_" + d.source.name + 
-			" association_" + d.target.name
-	})
-
-//SVG groups (g) for the assets
-graph.asset = d3.select('svg')
-	.selectAll('g')
+var buttons = d3.select('div')
+	.selectAll('.button')
 	.data(root.children)
 	.enter()
-	.append('g')
-	.on("mouseover", function(d) {
-		//Visibility and opacity to focus an Asset
-		d3.selectAll('.asset_path').attr("visibility","hidden")
-		d3.selectAll('.asset_path_' + d.name).attr("visibility","visible")
-		d3.selectAll('.asset').attr("opacity", "0.2")
-		d3.selectAll('.asset_' + d.name).attr("opacity","1.0")
-		d3.selectAll('.association').attr("opacity", "0.0")
-		d3.selectAll('.association_' + d.name).attr("opacity", "1.0")
-	})
-	.on("mouseout", function(d) {
-		d3.selectAll('.asset_path').attr("visibility","visible")
-		d3.selectAll('.asset').attr("opacity", "1.0")
-		d3.selectAll('.association').attr("opacity", "1.0")
-	})
-graph.assetBox = graph.asset.append(createAssetBox)
-	.attr("class", (d) => {
-		//Set classes to related assets
-		classes = []
-		if(d.children){
-			d.children.forEach(function(attackStep) {
-				if(attackStep.source_steps){
-					attackStep.source_steps.forEach(function(source) {
-						classes.push(" asset_" + source.entity.name)
-					})
-				}
-				if(attackStep.target_steps){
-					attackStep.target_steps.forEach(function(target) {
-						classes.push(" asset_" + target.entity.name)
-					})
-				}
-			})
-		}
-		return "asset asset_" + d.name + classes.join("")
+	.append("label")
+	.text(function(d) {return d.name})
+	.append("input")
+    .attr("checked", true)
+    .attr("type", "checkbox")
+    .attr("id", function(d,i) { return 'a'+i; })
+	.on("click", function(d) {
+		d.hidden = !d.hidden
+		update()
 	})
 
-var drag = d3.drag()
-	.on("start", draggedStart)
-	.on("drag", dragged)
-	.on("end", draggedEnd)
+graph.association = d3.select('svg').selectAll('.association')
+graph.asset = d3.select('svg').selectAll('.asset')
+graph.attackPath = d3.select('svg').selectAll('.attackpath')
 
-graph.asset.call(drag)
+update()
 
-graph.attackPath = d3.select('svg')
-	.selectAll('line .path')
-	.data(relations)
-    .enter()
-    
-graph.attackPathLink = graph.attackPath.append(function(d) {
-		if(d.source.entity.name == d.target.entity.name) {
-			return document.createElement('path')
-		}
-		var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-		path.setAttributeNS(null, 'stroke-width', 1.1)
-		path.setAttributeNS(null, 'stroke', 'black')
-		path.setAttributeNS(null, 'fill', 'transparent')
-		path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
-		path.setAttributeNS(null, 'class', 'asset_path' +
-								' asset_path_' + d.source.entity.name + 
-								" asset_path_" + d.target.entity.name)
-		path.setAttributeNS(null, 'visibility', 'visible')
-		return path
-	})
+function update() {
+	//Lines for associations
+	graph.association = graph.association.data(root.associations)
+	graph.association.exit().remove()
+	graph.association = graph.association.enter()
+		.append('line')
+		.attr('stroke-width', 2)
+		.style('stroke', 'grey')
+		.attr('class', function(d) {
+			return "association association_" + d.source.name + 
+				" association_" + d.target.name
+		})
+		.merge(graph.association)
+		.attr("visibility", function(d) {
+			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
+		})
+
+	graph.asset = graph.asset.data(root.children)
+	graph.asset.exit().remove()
+	graph.asset = graph.asset.enter()
+		.append(createAssetBox).merge(graph.asset)
+		.attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
+		/*
+		.on("mouseover", function(d) {
+			//Visibility and opacity to focus an Asset
+			d3.selectAll('.asset_path').attr("visibility","hidden")
+			d3.selectAll('.asset_path_' + d.name).attr("visibility","visible")
+			d3.selectAll('.asset').attr("opacity", "0.2")
+			d3.selectAll('.asset_' + d.name).attr("opacity","1.0")
+			d3.selectAll('.association').attr("opacity", "0.0")
+			d3.selectAll('.association_' + d.name).attr("opacity", "1.0")
+		})
+		.on("mouseout", function(d) {
+			d3.selectAll('.asset_path').attr("visibility","visible")
+			d3.selectAll('.asset').attr("opacity", "1.0")
+			d3.selectAll('.association').attr("opacity", "1.0")
+		})
+		*/
+
+	graph.attackPath = graph.attackPath.data(relations)
+	graph.attackPath.exit().remove()
+	graph.attackPath = graph.attackPath.enter()
+		.append(function(d) {
+			if(d.source.entity.name == d.target.entity.name) {
+				return document.createElement('path')
+			}
+			var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+			path.setAttributeNS(null, 'stroke-width', 1.1)
+			path.setAttributeNS(null, 'stroke', 'black')
+			path.setAttributeNS(null, 'fill', 'transparent')
+			path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
+			path.setAttributeNS(null, 'class', 'asset_path' +
+									' asset_path_' + d.source.entity.name + 
+									" asset_path_" + d.target.entity.name)
+			return path
+		})
+		.merge(graph.attackPath)
+		.attr("visibility", function(d) {
+			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
+		})
+
+
+	var drag = d3.drag()
+		.on("start", draggedStart)
+		.on("drag", dragged)
+		.on("end", draggedEnd)
+
+	graph.asset.call(drag)
+	
+	simulation.nodes(root.children);
+	simulation.force('link', d3.forceLink().links(root.associations).strength(0.01))
+	simulation.restart();
+}
 
 function ticked() {
 	//Update Association link position
-	graph.associationLink.attr('x1', function(d) {
+	graph.association.attr('x1', function(d) {
 			return d.source.x
 		})
 		.attr('y1', function(d) {
@@ -128,14 +139,14 @@ function ticked() {
 		.attr('y2', function(d) {
 			return d.target.y + (30 * d.target.children.length + 40)/2
 		})
-
+		
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
 	})
-
+	
     //Update Attack path position
-	graph.attackPathLink.attr('d', function(d) {
+	graph.attackPath.attr('d', function(d) {
 		if(d.source.entity.name == d.target.entity.name) {
 			return
 		}
@@ -386,19 +397,4 @@ function initialize(root) {
             }
         })
     }
-
-    d3.select("body").on('keydown', function() {
-        if (d3.event.keyCode === 32) {
-            if (root.children) {
-                root.children.forEach(function(entity) {
-                    if (entity.hidden) {
-                        entity.hidden = false;
-                    } else {
-                        entity.hidden = true;
-                    }
-                    update();
-                })
-            }
-        }
-    })
 }
