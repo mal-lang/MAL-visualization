@@ -1,5 +1,7 @@
 var svg = d3.select('svg');
 
+var g = svg.append("g")
+
 var width = svg.attr("width")
 var height = svg.attr("height");
 var graph = {}
@@ -30,11 +32,23 @@ var simulation = d3.forceSimulation(root.children)
     .force('collide', d3.forceCollide(180))
 	.on('tick', ticked)
 
+svg.call(d3.zoom()
+	.extent([[0, 0], [width, height]])
+	.scaleExtent([-8, 8])
+	.on("zoom", zoomed));
+
+function zoomed() {
+	g.attr("transform", d3.event.transform);
+}
+
 var buttons = d3.select('div')
 	.selectAll('.button')
 	.data(root.children)
 	.enter()
+	.append("div")
+	.attr("style", "width: 100%")
 	.append("label")
+	.attr("font-family", "Arial")
 	.text(function(d) {return d.name})
 	.append("input")
     .attr("checked", true)
@@ -45,9 +59,9 @@ var buttons = d3.select('div')
 		update()
 	})
 
-graph.association = d3.select('svg').selectAll('.association')
-graph.asset = d3.select('svg').selectAll('.asset')
-graph.attackPath = d3.select('svg').selectAll('.attackpath')
+graph.association = g.selectAll('.association')
+graph.asset = g.selectAll('.asset')
+graph.attackPath = g.selectAll('.attackpath')
 
 update()
 
