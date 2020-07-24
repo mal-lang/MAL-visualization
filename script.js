@@ -39,7 +39,9 @@ setAssociationId(root);
 var simulation = d3.forceSimulation(root.children)
 	.force('link', d3.forceLink().links(root.associations))
 	.force('center', d3.forceCenter(width/2, height/2))
-    .force('collide', d3.forceCollide(180))
+	.force('collide', d3.forceCollide(200))
+	.force('x', d3.forceX(width/2).strength(0.0125))
+    .force('y', d3.forceY(height/2).strength(0.0275))
 	.on('tick', ticked)
 
 svg.call(d3.zoom()
@@ -70,7 +72,12 @@ var buttons = d3.select('div')
 	.attr("style", "width: 100%")
 	.append("label")
 	.attr("font-family", "Arial")
-	.text(function(d) {return d.name})
+	.text(function(d) {
+		if(d.name.length > 19) {
+			return d.name.substring(0, 16) + "..."
+		}
+		return d.name
+	})
 	.append("input")
     .attr("checked", true)
     .attr("type", "checkbox")
