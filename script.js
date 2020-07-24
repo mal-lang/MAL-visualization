@@ -6,20 +6,30 @@ var width = svg.attr("width")
 var height = svg.attr("height");
 var graph = {}
 
-var boxWidth = 300
+var boxWidth = 340
 var labelHeight = 40
 var attackStepHeight = 30
-var sideMargin = 75
+var sideMargin = 30
+var arrowMargin = 85
 
 var colors = [
 //	[Dark shade, light shade]
-	["#D3367D", "#E072A4"],
 	["#264D7D", "#447EC5"],
+	["#D3367D", "#E072A4"],
 	["#519F2D", "#B0E298"],
-	["#553A49", "#9C6D87"]
+	["#553A49", "#9C6D87"],
+	["#DD5E03", "#FEAC72"]
 ]
 
 var root = {"children":[{"name":"Network","children":[{"name":"access","type":"or","targets":[{"name":"connect","entity_name":"Host","size":4000}]}]},{"name":"Host","children":[{"name":"connect","type":"or","targets":[{"name":"access","entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","entity_name":"Password","size":4000}]}]},{"name":"Password","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host"},{"source":"Host","target":"Password"},{"source":"User","target":"Password"}]}
+
+var categories = {}
+var numCategories = 0
+root.children.forEach(function(element) {
+	if (categories[element.category] == undefined) {
+		categories[element.category] = numCategories++
+	}
+})
 
 initialize(root);
 set_id(root);
@@ -40,6 +50,17 @@ svg.call(d3.zoom()
 function zoomed() {
 	g.attr("transform", d3.event.transform);
 }
+
+var exportButton = d3.select('div')
+	.selectAll('.exportButton')
+	.data([{text: "Export"}])
+	.enter()
+	.append("button")
+	.attr("style", "margin: 5px; width: 90%; height: 30px")
+	.text(function(d) {
+		return d.text
+	})
+	.attr("onclick", "export_svg()")
 
 var buttons = d3.select('div')
 	.selectAll('.button')
@@ -169,25 +190,25 @@ function ticked() {
 		if(Math.abs(d.source.entity.x - 
 					d.target.entity.x) < boxWidth/2) {
 			if(d.source.entity.x < width/2) {
-				var x1 = d.source.entity.x - boxWidth/2
-				var x2 = d.target.entity.x - boxWidth/2 - 5
+				var x1 = d.source.entity.x - boxWidth/2 + sideMargin
+				var x2 = d.target.entity.x - boxWidth/2 + sideMargin - 5
 				var c1 = x1 - controllBend
 				var c2 = x2 - controllBend
 			} else {
-				var x1 = d.source.entity.x + boxWidth/2
-				var x2 = d.target.entity.x + boxWidth/2 + 5
+				var x1 = d.source.entity.x + boxWidth/2 - sideMargin
+				var x2 = d.target.entity.x + boxWidth/2 - sideMargin + 5
 				var c1 = x1 + controllBend
 				var c2 = x2 + controllBend
 			}
 		}
 		else if(d.source.entity.x - d.target.entity.x > 0) {
-			var x1 = d.source.entity.x - boxWidth/2
-			var x2 = d.target.entity.x + boxWidth/2 + 5
+			var x1 = d.source.entity.x - boxWidth/2 + sideMargin
+			var x2 = d.target.entity.x + boxWidth/2 - sideMargin + 5
 			var c1 = x1 - controllBend
 			var c2 = x2 + controllBend
 		} else {
-			var x1 = d.source.entity.x + boxWidth/2
-			var x2 = d.target.entity.x - boxWidth/2 - 5
+			var x1 = d.source.entity.x + boxWidth/2 - sideMargin
+			var x2 = d.target.entity.x - boxWidth/2 + sideMargin - 5
 			var c1 = x1 + controllBend
 			var c2 = x2 - controllBend
         }
@@ -211,7 +232,7 @@ function createAssetBox(d) {
 
 	//Boundning rectangle
     var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-	rect.setAttributeNS(null, 'fill', colors[d.id%colors.length][0])
+	rect.setAttributeNS(null, 'fill', colors[categories[d.category]][0])
     rect.setAttributeNS(null, 'width', boxWidth)
 	rect.setAttributeNS(
 		null, 
@@ -236,10 +257,10 @@ function createAssetBox(d) {
         attackStep.index = parseInt(step)
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-		asbox.setAttributeNS(null, 'fill', colors[d.id%colors.length][1])
-		asbox.setAttributeNS(null, 'x', 0)
+		asbox.setAttributeNS(null, 'fill', colors[categories[d.category]][1])
+		asbox.setAttributeNS(null, 'x', sideMargin)
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
-		asbox.setAttributeNS(null, 'width', boxWidth)
+		asbox.setAttributeNS(null, 'width', boxWidth-2*sideMargin)
 		asbox.setAttributeNS(null, 'height', attackStepHeight - 5)
 		asbox.setAttributeNS(null, 'class', 'asset_' + d.name)
 		group.append(asbox)
@@ -274,19 +295,19 @@ function createAssetBox(d) {
 				var yt = (relation.index * attackStepHeight + labelHeight + 12)
                 var bend = 8
 				if(attackStep.index < relation.index) {
-					var start = "M " + (boxWidth-sideMargin) + " " + ys + " "
-					var c1 = "" + ((boxWidth-sideMargin) + 20 + 
+					var start = "M " + (boxWidth-arrowMargin) + " " + ys + " "
+					var c1 = "" + ((boxWidth-arrowMargin) + 20 + 
 							(bend*Math.abs(attackStep.index - relation.index))) + " " + ys
-					var c2 = "" + ((boxWidth-sideMargin) + 20 + 
+					var c2 = "" + ((boxWidth-arrowMargin) + 20 + 
 							(bend*Math.abs(attackStep.index - relation.index))) + " " + yt
-					var end = (boxWidth - sideMargin + 5) + " " + yt
+					var end = (boxWidth - arrowMargin + 5) + " " + yt
 				} else {
-					var start = "M " + sideMargin + " " + ys + " "
-					var c1 = "" + ((sideMargin) - 20 - 
+					var start = "M " + arrowMargin + " " + ys + " "
+					var c1 = "" + ((arrowMargin) - 20 - 
 							(bend*Math.abs(attackStep.index - relation.index))) + " " + ys
-					var c2 = "" + ((sideMargin) - 20 - 
+					var c2 = "" + ((arrowMargin) - 20 - 
 							(bend*Math.abs(attackStep.index - relation.index))) + " " + yt
-                    var end = (sideMargin - 5) + " " + yt
+                    var end = (arrowMargin - 5) + " " + yt
 				}
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
 				line.setAttributeNS(null, 'stroke-width', 1.1)
@@ -411,4 +432,33 @@ function initialize(root) {
             }
         })
     }
+}
+
+function export_svg() {
+    var svg = document.getElementById("svg_content")
+    //get svg source.
+    var serializer = new XMLSerializer();
+    var source = serializer.serializeToString(svg);
+
+    //add name spaces.
+    if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    }
+
+    //add xml declaration
+    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+	//convert svg source to URI data scheme.
+    var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+	
+	var link = document.createElement("a");
+	link.download = "MAL.svg"
+	link.href = url
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	delete link;
 }
