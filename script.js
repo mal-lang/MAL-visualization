@@ -101,10 +101,6 @@ function update() {
 		.append('line')
 		.attr('stroke-width', 2)
 		.style('stroke', 'grey')
-		.attr('class', function(d) {
-			return "association association_" + d.source.name + 
-				" association_" + d.target.name
-		})
 		.merge(graph.association)
 		.attr("visibility", function(d) {
 			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
@@ -113,7 +109,8 @@ function update() {
 	graph.asset = graph.asset.data(root.children)
 	graph.asset.exit().remove()
 	graph.asset = graph.asset.enter()
-		.append(createAssetBox).merge(graph.asset)
+		.append(createAssetBox)
+		.merge(graph.asset)
 		.attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
 		/*
 		.on("mouseover", function(d) {
@@ -136,6 +133,13 @@ function update() {
 	graph.attackPath.exit().remove()
 	graph.attackPath = graph.attackPath.enter()
 		.append(function(d) {
+			var target = document.getElementById(d.target.entity.name + "_" + d.target.name)
+			var oldClass = target.getAttributeNS(null, 'class')
+			target.setAttributeNS(null, 'class', oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name)
+			var source = document.getElementById(d.source.entity.name + "_" + d.source.name)
+			oldClass = source.getAttributeNS(null, 'class')
+			source.setAttributeNS(null, 'class', oldClass + " parent_to_" + d.target.entity.name + "_" + d.target.name)
+			
 			if(d.source.entity.name == d.target.entity.name) {
 				return document.createElement('path')
 			}
@@ -144,9 +148,6 @@ function update() {
 			path.setAttributeNS(null, 'stroke', 'black')
 			path.setAttributeNS(null, 'fill', 'transparent')
 			path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
-			path.setAttributeNS(null, 'class', 'asset_path' +
-									' asset_path_' + d.source.entity.name + 
-									" asset_path_" + d.target.entity.name)
 			return path
 		})
 		.merge(graph.attackPath)
@@ -230,6 +231,46 @@ function ticked() {
 	})
 }
 
+function traceChildren(attackStep) {
+	document.getElementById('clickMenu').remove()
+	d3.selectAll('.attackStep').attr("opacity","0.1")
+	d3.selectAll('#' + attackStep).attr("opacity","1.0")
+	console.log('.child_to_' + attackStep)
+	d3.selectAll('.child_to_' + attackStep).attr("opacity","1.0")
+}
+
+function traceParents(attackStep) {
+	document.getElementById('clickMenu').remove()
+	d3.selectAll('.attackStep').attr("opacity","0.1")
+	d3.selectAll('#' + attackStep).attr("opacity","1.0")
+	console.log('.parent_to_' + attackStep)
+	d3.selectAll('.parent_to_' + attackStep).attr("opacity","1.0")
+}
+
+function asclick(name) {
+	var old = document.getElementById('clickMenu')
+	if(old != null) {
+		old.remove()
+	}
+	var x = event.clientX
+	var y = event.clientY
+	var clickMenu = document.createElement('div')
+	clickMenu.setAttribute('id', 'clickMenu')
+	clickMenu.setAttribute('style', 'position:absolute;' +
+		'left:'+x+'px;top:'+y+'px;' + 
+		'width:100px;height:100px;background-color:orange;'
+	)
+	var p1 = document.createElement('p')
+	p1.innerHTML = "Trace Children"
+	p1.setAttribute('onclick', 'traceChildren("' + name + '")')
+	clickMenu.appendChild(p1)
+	var p2 = document.createElement('p')
+	p2.innerHTML = "Trace Parents"
+	p2.setAttribute('onclick', 'traceParents("' + name + '")')
+	clickMenu.appendChild(p2)
+	document.body.appendChild(clickMenu)
+}
+
 //Function taking an asset object and returning a SVG element
 function createAssetBox(d) {
     if(!d.children) {
@@ -269,7 +310,9 @@ function createAssetBox(d) {
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
 		asbox.setAttributeNS(null, 'width', boxWidth-2*sideMargin)
 		asbox.setAttributeNS(null, 'height', attackStepHeight - 5)
-		asbox.setAttributeNS(null, 'class', 'asset_' + d.name)
+		asbox.setAttributeNS(null, 'oncontextmenu', 'asclick("' + d.name+ "_" +attackStep.name+ '")')
+		asbox.setAttributeNS(null, 'id', d.name+ "_" +attackStep.name)
+		asbox.setAttributeNS(null, 'class', "attackStep ")
 		group.append(asbox)
 		//Name of each Attack Step
 		var text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
