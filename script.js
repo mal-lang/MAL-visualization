@@ -104,6 +104,18 @@ function childrenRecurse(base, attackStep, traversed) {
 					'class', 
 					oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
 				)
+				
+				var pathElem = document.getElementById(
+					'path_' + attackStep.entity.name + "_" + attackStep.name +
+					'_to_' + child.entity.name + "_" + child.name
+				)
+				oldClass = pathElem.getAttributeNS(null, 'class')
+				pathElem.setAttributeNS(
+					null, 
+					'class', 
+					oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
+				)
+
 				traversed[child.entity.name + "_" + child.name] = true
 				childrenRecurse(base, child, traversed)
 			}
@@ -122,6 +134,18 @@ function parentRecurse(base, attackStep, traversed) {
 					'class', 
 					oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
 				)
+
+				var pathElem = document.getElementById(
+					'path_' + parent.entity.name + "_" + parent.name +
+					'_to_' + attackStep.entity.name + "_" + attackStep.name
+				)
+				oldClass = pathElem.getAttributeNS(null, 'class')
+				pathElem.setAttributeNS(
+					null, 
+					'class', 
+					oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
+				)
+
 				traversed[parent.entity.name + "_" + parent.name] = true
 				parentRecurse(base, parent, traversed)
 			}
@@ -156,19 +180,14 @@ function update() {
 		.append(function(d) {
 			var target = document.getElementById(d.target.entity.name + "_" + d.target.name)
 			var oldClass = target.getAttributeNS(null, 'class')
-			target.setAttributeNS(null, 'class', oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name)
+			target.setAttributeNS(null, 'class', 
+				oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name
+			)
 			var source = document.getElementById(d.source.entity.name + "_" + d.source.name)
 			oldClass = source.getAttributeNS(null, 'class')
-			source.setAttributeNS(null, 'class', oldClass + " parent_to_" + d.target.entity.name + "_" + d.target.name)
-
-			var traversed = {}
-			traversed[d.source.entity.name + "_" + d.source.name] = true
-			childrenRecurse(d.source, d.source, traversed)
-
-			traversed = {}
-			traversed[d.target.entity.name + "_" + d.target.name] = true
-			parentRecurse(d.target, d.target, traversed)
-			
+			source.setAttributeNS(null, 'class', 
+				oldClass + " parent_to_" + d.target.entity.name + "_" + d.target.name
+			)
 			if(d.source.entity.name == d.target.entity.name) {
 				return document.createElement('path')
 			}
@@ -177,7 +196,16 @@ function update() {
 			path.setAttributeNS(null, 'stroke', 'black')
 			path.setAttributeNS(null, 'fill', 'transparent')
 			path.setAttributeNS(null, 'marker-end', 'url(#arrow)')
-			path.setAttributeNS(null, 'class', 'notClickable')
+			path.setAttributeNS(null, 
+				'id', 'path_' + d.source.entity.name + "_" + d.source.name + 
+				'_to_' + d.target.entity.name + "_" + d.target.name
+			)
+			path.setAttributeNS(
+				null, 
+				'class', 
+				' notClickable attackPath child_to_' + d.source.entity.name + "_" + d.source.name + 
+				' parent_to_' + d.target.entity.name + "_" + d.target.name
+			)
 			return path
 		})
 		.merge(graph.attackPath)
@@ -185,6 +213,21 @@ function update() {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
 
+	if(root.children) {
+		root.children.forEach(function(asset) {
+			if(asset.children) {
+				asset.children.forEach(function(attackStep) {
+					var traversed = {}
+					traversed[attackStep.entity.name + "_" + attackStep.name] = true
+					childrenRecurse(attackStep, attackStep, traversed)
+
+					traversed = {}
+					traversed[attackStep.entity.name + "_" + attackStep.name] = true
+					parentRecurse(attackStep, attackStep, traversed)
+				})
+			}
+		})
+	}
 
 	var drag = d3.drag()
 		.on("start", draggedStart)
@@ -264,6 +307,7 @@ function ticked() {
 function traceChildren(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
+	d3.selectAll('.attackPath').attr("opacity","0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.child_to_' + attackStep).attr("opacity","1.0")
 }
@@ -271,6 +315,7 @@ function traceChildren(attackStep) {
 function traceParents(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
+	d3.selectAll('.attackPath').attr("opacity","0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.parent_to_' + attackStep).attr("opacity","1.0")
 }
@@ -278,6 +323,7 @@ function traceParents(attackStep) {
 function traceAllChildren(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
+	d3.selectAll('.attackPath').attr("opacity","0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_child_to_' + attackStep).attr("opacity","1.0")
 }
@@ -285,6 +331,7 @@ function traceAllChildren(attackStep) {
 function traceAllParents(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
+	d3.selectAll('.attackPath').attr("opacity","0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_parent_to_' + attackStep).attr("opacity","1.0")
 }
@@ -360,7 +407,9 @@ function createAssetBox(d) {
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
 		asbox.setAttributeNS(null, 'width', boxWidth-2*sideMargin)
 		asbox.setAttributeNS(null, 'height', attackStepHeight - 5)
-		asbox.setAttributeNS(null, 'oncontextmenu', 'asclick("' + d.name+ "_" +attackStep.name+ '")')
+		asbox.setAttributeNS(null, 
+			'oncontextmenu', 'asclick("' + d.name + "_" + attackStep.name + '")'
+		)
 		asbox.setAttributeNS(null, 'id', d.name+ "_" +attackStep.name)
 		asbox.setAttributeNS(null, 'class', "attackStep ")
 		group.append(asbox)
@@ -415,7 +464,14 @@ function createAssetBox(d) {
 				line.setAttributeNS(null, 'stroke', 'black')
 				line.setAttributeNS(null, 'fill', 'transparent')
 				line.setAttributeNS(null, 'marker-end', 'url(#arrow)')
-				line.setAttributeNS(null, 'class', 'notClickable')
+				line.setAttributeNS(null, 'id', 
+					'path_' + attackStep.entity.name + "_" + attackStep.name + "_to_" +
+					relation.entity.name + "_" + relation.name	
+				)
+				line.setAttributeNS(null, 'class', 'notClickable attackPath' +
+					' child_to_' + attackStep.entity.name + "_" + attackStep.name +
+					' parent_to_' + relation.entity.name + "_" + relation.name
+				)
 				group.appendChild(line)
 			}
 		}
