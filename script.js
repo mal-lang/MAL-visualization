@@ -1,5 +1,13 @@
 var svg = d3.select('svg');
-
+svg.on("click", function(){
+	var menu = document.getElementById('clickMenu')
+	if(menu != null) {
+		menu.remove()
+	}
+	d3.selectAll(".attackPath").attr('opacity', 1.0)
+	d3.selectAll(".attackStep").attr('opacity', 1.0)
+	d3.selectAll(".asset").attr('opacity', 1.0)
+})
 var g = svg.append("g")
 
 var width = svg.attr("width")
@@ -94,6 +102,13 @@ graph.attackPath = g.selectAll('.attackpath')
 update()
 
 function childrenRecurse(base, attackStep, traversed) {
+	var assetElem = document.getElementById('asset_' + attackStep.entity.name)
+	oldClass = assetElem.getAttributeNS(null, 'class')
+	assetElem.setAttributeNS(
+		null,
+		'class',
+		oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
+	)
 	if(attackStep.target_steps) {
 		attackStep.target_steps.forEach(function(child) {
 			if(!traversed[child.entity.name + "_" + child.name]) {
@@ -115,7 +130,6 @@ function childrenRecurse(base, attackStep, traversed) {
 					'class', 
 					oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
 				)
-
 				traversed[child.entity.name + "_" + child.name] = true
 				childrenRecurse(base, child, traversed)
 			}
@@ -124,6 +138,13 @@ function childrenRecurse(base, attackStep, traversed) {
 }
 
 function parentRecurse(base, attackStep, traversed) {
+	var assetElem = document.getElementById('asset_' + attackStep.entity.name)
+	oldClass = assetElem.getAttributeNS(null, 'class')
+	assetElem.setAttributeNS(
+		null,
+		'class',
+		oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
+	)
 	if(attackStep.source_steps) {
 		attackStep.source_steps.forEach(function(parent) {
 			if(!traversed[parent.entity.name + "_" + parent.name]) {
@@ -145,7 +166,6 @@ function parentRecurse(base, attackStep, traversed) {
 					'class', 
 					oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
 				)
-
 				traversed[parent.entity.name + "_" + parent.name] = true
 				parentRecurse(base, parent, traversed)
 			}
@@ -153,9 +173,25 @@ function parentRecurse(base, attackStep, traversed) {
 	}
 }
 
+if(root.children) {
+	root.children.forEach(function(asset) {
+		if(asset.children) {
+			asset.children.forEach(function(attackStep) {
+				var traversed = {}
+				traversed[attackStep.entity.name + "_" + attackStep.name] = true
+				childrenRecurse(attackStep, attackStep, traversed)
+
+				traversed = {}
+				traversed[attackStep.entity.name + "_" + attackStep.name] = true
+				parentRecurse(attackStep, attackStep, traversed)
+			})
+		}
+	})
+}
 
 function update() {
 	//Lines for associations
+	/*
 	graph.association = graph.association.data(root.associations)
 	graph.association.exit().remove()
 	graph.association = graph.association.enter()
@@ -166,6 +202,7 @@ function update() {
 		.attr("visibility", function(d) {
 			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
 		})
+	*/
 
 	graph.asset = graph.asset.data(root.children)
 	graph.asset.exit().remove()
@@ -173,7 +210,6 @@ function update() {
 		.append(createAssetBox)
 		.merge(graph.asset)
 		.attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
-
 	graph.attackPath = graph.attackPath.data(relations)
 	graph.attackPath.exit().remove()
 	graph.attackPath = graph.attackPath.enter()
@@ -188,6 +224,19 @@ function update() {
 			source.setAttributeNS(null, 'class', 
 				oldClass + " parent_to_" + d.target.entity.name + "_" + d.target.name
 			)
+			var targetAsset = document.getElementById('asset_' + d.target.entity.name)
+			oldClass = targetAsset.getAttributeNS(null, 'class')
+			targetAsset.setAttributeNS(null, 'class', 
+				oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name +
+				" parent_to_" + d.target.entity.name + "_" + d.target.name
+			)
+			targetAsset = document.getElementById('asset_' + d.source.entity.name)
+			oldClass = targetAsset.getAttributeNS(null, 'class')
+			targetAsset.setAttributeNS(null, 'class', 
+				oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name +
+				" parent_to_" + d.target.entity.name + "_" + d.target.name
+			)
+
 			if(d.source.entity.name == d.target.entity.name) {
 				return document.createElement('path')
 			}
@@ -213,22 +262,6 @@ function update() {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
 
-	if(root.children) {
-		root.children.forEach(function(asset) {
-			if(asset.children) {
-				asset.children.forEach(function(attackStep) {
-					var traversed = {}
-					traversed[attackStep.entity.name + "_" + attackStep.name] = true
-					childrenRecurse(attackStep, attackStep, traversed)
-
-					traversed = {}
-					traversed[attackStep.entity.name + "_" + attackStep.name] = true
-					parentRecurse(attackStep, attackStep, traversed)
-				})
-			}
-		})
-	}
-
 	var drag = d3.drag()
 		.on("start", draggedStart)
 		.on("drag", dragged)
@@ -243,6 +276,7 @@ function update() {
 
 function ticked() {
 	//Update Association link position
+	/*
 	graph.association.attr('x1', function(d) {
 			return d.source.x
 		})
@@ -255,7 +289,7 @@ function ticked() {
 		.attr('y2', function(d) {
 			return d.target.y + (30 * d.target.children.length + 40)/2
 		})
-		
+	*/
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
@@ -308,7 +342,9 @@ function traceChildren(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
 	d3.selectAll('.attackPath').attr("opacity","0.0")
+	d3.selectAll('.asset').attr("opacity", "0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
+	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.child_to_' + attackStep).attr("opacity","1.0")
 }
 
@@ -316,7 +352,9 @@ function traceParents(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
 	d3.selectAll('.attackPath').attr("opacity","0.0")
+	d3.selectAll('.asset').attr("opacity", "0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
+	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.parent_to_' + attackStep).attr("opacity","1.0")
 }
 
@@ -324,6 +362,7 @@ function traceAllChildren(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
 	d3.selectAll('.attackPath').attr("opacity","0.0")
+	d3.selectAll('.asset').attr("opacity","0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_child_to_' + attackStep).attr("opacity","1.0")
 }
@@ -332,6 +371,7 @@ function traceAllParents(attackStep) {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.attackStep').attr("opacity","0.1")
 	d3.selectAll('.attackPath').attr("opacity","0.0")
+	d3.selectAll('.asset').attr("opacity","0.0")
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_parent_to_' + attackStep).attr("opacity","1.0")
 }
@@ -374,6 +414,7 @@ function createAssetBox(d) {
         d.children = []
     }
 	var group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+	var classString = "asset"
 
 	//Boundning rectangle
     var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
@@ -399,7 +440,8 @@ function createAssetBox(d) {
 	group.appendChild(label)
 	for(step in d.children) {
 		var attackStep = d.children[step]
-        attackStep.index = parseInt(step)
+		attackStep.index = parseInt(step)
+		classString += " " + d.name + "_" + attackStep.name
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
 		asbox.setAttributeNS(null, 'fill', colors[categories[d.category]][1])
@@ -475,8 +517,9 @@ function createAssetBox(d) {
 				group.appendChild(line)
 			}
 		}
-    }
-
+	}
+	group.setAttributeNS(null, 'class', classString)
+	group.setAttributeNS(null, 'id', 'asset_' + d.name)
 	return group
 }
 
