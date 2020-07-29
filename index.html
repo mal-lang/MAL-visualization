@@ -7,9 +7,22 @@
     <style>
         html, body { margin:0; padding:0px; width:100%; white-space: nowrap;}
         .notClickable { pointer-events: none; }
+        #sideMenu { 
+            overflow: hidden;
+            position: relative;
+            float: left;
+            height: 98vh;
+            width: 180px;
+            background-color: #FD7121;
+            text-align: center;
+            white-space: normal; 
+        }
+        .font {
+            font-family: Arial;
+        }
     </style>
     <body oncontextmenu="return false;">
-        <div style="position: relative; float: left; height: 98vh; width: 180px; background-color: orange; text-align: center"></div>
+        <div id="sideMenu"></div>
         <svg id="svg_content" width="1700" height="960" style="display: inline-block">
             <defs>
                 <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"

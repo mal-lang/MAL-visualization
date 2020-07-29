@@ -7,6 +7,7 @@ svg.on("click", function(){
 	d3.selectAll(".attackPath").attr('opacity', 1.0)
 	d3.selectAll(".attackStep").attr('opacity', 1.0)
 	d3.selectAll(".asset").attr('opacity', 1.0)
+	d3.selectAll(".association").attr('opacity', 1.0)
 })
 var g = svg.append("g")
 
@@ -61,25 +62,45 @@ function zoomed() {
 	g.attr("transform", d3.event.transform);
 }
 
-var exportButton = d3.select('div')
-	.selectAll('.exportButton')
-	.data([{text: "Export"}])
+d3.select('#sideMenu')
+	.selectAll('.label')
+	.data([{text: "MAL-Visualizer"}])
 	.enter()
-	.append("button")
-	.attr("style", "margin: 5px; width: 90%; height: 30px")
+	.append("h4")
 	.text(function(d) {
 		return d.text
 	})
-	.attr("onclick", "export_svg()")
+	.attr("class", "font")
 
-var buttons = d3.select('div')
+d3.select('#sideMenu').append("hr")
+
+var hide = true;
+var hideAssets = d3.select('#sideMenu')
+	.selectAll('.hideButton')
+	.data([{text: "Hide assets on trace"}])
+	.enter()
+	.append("label")
+	.attr("class", "font")
+	.text(function(d) {
+		return d.text
+	})
+	.append("input")
+    .attr("checked", true)
+    .attr("type", "checkbox")
+	.on("click", function() {
+		hide = !hide
+	})
+
+d3.select('#sideMenu').append("hr")
+
+var buttons = d3.select('#sideMenu')
 	.selectAll('.button')
 	.data(root.children)
 	.enter()
 	.append("div")
 	.attr("style", "width: 100%")
 	.append("label")
-	.attr("font-family", "Arial")
+	.attr("class", "font")
 	.text(function(d) {
 		if(d.name.length > 19) {
 			return d.name.substring(0, 16) + "..."
@@ -94,6 +115,19 @@ var buttons = d3.select('div')
 		d.hidden = !d.hidden
 		update()
 	})
+
+d3.select('#sideMenu').append("hr")
+
+var exportButton = d3.select('#sideMenu')
+	.selectAll('.exportButton')
+	.data([{text: "Export"}])
+	.enter()
+	.append("button")
+	.attr("style", "position: absolute; left: 5px; bottom: 10px; margin: auto; width: 170px; height: 30px")
+	.text(function(d) {
+		return d.text
+	})
+	.attr("onclick", "export_svg()")
 
 graph.association = g.selectAll('.association')
 graph.asset = g.selectAll('.asset')
@@ -191,7 +225,6 @@ if(root.children) {
 
 function update() {
 	//Lines for associations
-	/*
 	graph.association = graph.association.data(root.associations)
 	graph.association.exit().remove()
 	graph.association = graph.association.enter()
@@ -202,7 +235,7 @@ function update() {
 		.attr("visibility", function(d) {
 			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
 		})
-	*/
+		.attr("class", "association")
 
 	graph.asset = graph.asset.data(root.children)
 	graph.asset.exit().remove()
@@ -276,7 +309,6 @@ function update() {
 
 function ticked() {
 	//Update Association link position
-	/*
 	graph.association.attr('x1', function(d) {
 			return d.source.x
 		})
@@ -289,7 +321,6 @@ function ticked() {
 		.attr('y2', function(d) {
 			return d.target.y + (30 * d.target.children.length + 40)/2
 		})
-	*/
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
@@ -338,40 +369,39 @@ function ticked() {
 	})
 }
 
-function traceChildren(attackStep) {
+function removeMenuAndHide() {
 	document.getElementById('clickMenu').remove()
+	d3.selectAll('.asset').attr("opacity", "1.0")
 	d3.selectAll('.attackStep').attr("opacity","0.1")
 	d3.selectAll('.attackPath').attr("opacity","0.0")
-	d3.selectAll('.asset').attr("opacity", "0.0")
+	if(hide) {
+		d3.selectAll('.asset').attr("opacity", "0.0")
+	}
+	d3.selectAll('.association').attr("opacity", "0.0")
+}
+
+function traceChildren(attackStep) {
+	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.child_to_' + attackStep).attr("opacity","1.0")
 }
 
 function traceParents(attackStep) {
-	document.getElementById('clickMenu').remove()
-	d3.selectAll('.attackStep').attr("opacity","0.1")
-	d3.selectAll('.attackPath').attr("opacity","0.0")
-	d3.selectAll('.asset').attr("opacity", "0.0")
+	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.parent_to_' + attackStep).attr("opacity","1.0")
 }
 
 function traceAllChildren(attackStep) {
-	document.getElementById('clickMenu').remove()
-	d3.selectAll('.attackStep').attr("opacity","0.1")
-	d3.selectAll('.attackPath').attr("opacity","0.0")
-	d3.selectAll('.asset').attr("opacity","0.0")
+	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_child_to_' + attackStep).attr("opacity","1.0")
 }
 
 function traceAllParents(attackStep) {
-	document.getElementById('clickMenu').remove()
-	d3.selectAll('.attackStep').attr("opacity","0.1")
-	d3.selectAll('.attackPath').attr("opacity","0.0")
-	d3.selectAll('.asset').attr("opacity","0.0")
+	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_parent_to_' + attackStep).attr("opacity","1.0")
 }
