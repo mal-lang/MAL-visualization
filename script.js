@@ -1,5 +1,5 @@
 var svg = d3.select('svg');
-svg.on("click", function(){
+svg.on("dblclick", function(){
 	var menu = document.getElementById('clickMenu')
 	if(menu != null) {
 		menu.remove()
@@ -36,7 +36,11 @@ var categories = {}
 var numCategories = 0
 root.children.forEach(function(element) {
 	if (categories[element.category] == undefined) {
-		categories[element.category] = numCategories++
+		var category = {
+			name: element.category,
+			index: numCategories++
+		}
+		categories[element.category] = category
 	}
 })
 
@@ -56,7 +60,8 @@ var simulation = d3.forceSimulation(root.children)
 svg.call(d3.zoom()
 	.extent([[0, 0], [width, height]])
 	.scaleExtent([-8, 8])
-	.on("zoom", zoomed));
+	.on("zoom", zoomed))
+	.on("dblclick.zoom", null)
 
 function zoomed() {
 	g.attr("transform", d3.event.transform);
@@ -87,11 +92,47 @@ var hideAssets = d3.select('#sideMenu')
 	.append("input")
     .attr("checked", true)
     .attr("type", "checkbox")
-	.on("click", function() {
+	.on("click", function(d) {
 		hide = !hide
 	})
 
 d3.select('#sideMenu').append("hr")
+
+if(Object.keys(categories)[0] != "undefined") {
+	var categoryButtons = d3.select('#sideMenu')
+		.selectAll('.catButton')
+		.data(Object.keys(categories).map(function(d) {
+			return { name: d, hidden: false }
+		}))
+		.enter()
+		.append("div")
+		.attr("style", "width: 100%")
+		.append("label")
+		.attr("class", "font")
+		.text(function(d) {
+			if(d.name.length > 19) {
+				return d.name.substring(0, 16) + "..."
+			}
+			return d.name
+		})
+		.append("input")
+		.attr("checked", true)
+		.attr("type", "checkbox")
+		.attr("id", function(d,i) { return 'a'+i; })
+		.on("click", function(d) {
+			d.hidden = !d.hidden
+			if(root.children) {
+				root.children.forEach(function(asset) {
+					if(asset.category == d.name) {
+						document.getElementById('asset_checkbox_' + asset.name).		checked = !d.hidden
+						asset.hidden = d.hidden
+					}
+				})
+			}
+			update()
+		})
+	d3.select('#sideMenu').append("hr")
+}
 
 var buttons = d3.select('#sideMenu')
 	.selectAll('.button')
@@ -110,7 +151,9 @@ var buttons = d3.select('#sideMenu')
 	.append("input")
     .attr("checked", true)
     .attr("type", "checkbox")
-    .attr("id", function(d,i) { return 'a'+i; })
+    .attr("id", function(d) {
+		return 'asset_checkbox_' + d.name;
+	})
 	.on("click", function(d) {
 		d.hidden = !d.hidden
 		update()
@@ -448,7 +491,7 @@ function createAssetBox(d) {
 
 	//Boundning rectangle
     var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-	rect.setAttributeNS(null, 'fill', colors[categories[d.category]][0])
+	rect.setAttributeNS(null, 'fill', colors[categories[d.category].index][0])
     rect.setAttributeNS(null, 'width', boxWidth)
 	rect.setAttributeNS(
 		null, 
@@ -474,7 +517,7 @@ function createAssetBox(d) {
 		classString += " " + d.name + "_" + attackStep.name
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-		asbox.setAttributeNS(null, 'fill', colors[categories[d.category]][1])
+		asbox.setAttributeNS(null, 'fill', colors[categories[d.category].index][1])
 		asbox.setAttributeNS(null, 'x', sideMargin)
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
 		asbox.setAttributeNS(null, 'width', boxWidth-2*sideMargin)
