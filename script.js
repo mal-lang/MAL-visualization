@@ -178,35 +178,32 @@ graph.attackPath = g.selectAll('.attackpath')
 
 update()
 
+function appendClass(element, newClass) {
+	var oldClass = element.getAttributeNS(null, 'class')
+	if(!oldClass.split(" ").includes(newClass)) {
+		element.setAttributeNS(
+			null, 
+			'class', 
+			oldClass + " " + newClass
+		)
+	}
+}
+
 function childrenRecurse(base, attackStep, traversed) {
 	var assetElem = document.getElementById('asset_' + attackStep.entity.name)
-	oldClass = assetElem.getAttributeNS(null, 'class')
-	assetElem.setAttributeNS(
-		null,
-		'class',
-		oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
-	)
+	appendClass(assetElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 	if(attackStep.target_steps) {
 		attackStep.target_steps.forEach(function(child) {
 			if(!traversed[child.entity.name + "_" + child.name]) {
 				var childElem = document.getElementById(child.entity.name + "_" + child.name)
-				var oldClass = childElem.getAttributeNS(null, 'class')
-				childElem.setAttributeNS(
-					null, 
-					'class', 
-					oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
-				)
+				appendClass(childElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 				
 				var pathElem = document.getElementById(
 					'path_' + attackStep.entity.name + "_" + attackStep.name +
 					'_to_' + child.entity.name + "_" + child.name
 				)
-				oldClass = pathElem.getAttributeNS(null, 'class')
-				pathElem.setAttributeNS(
-					null, 
-					'class', 
-					oldClass + " rec_child_to_" + base.entity.name + "_" + base.name
-				)
+				appendClass(pathElem, "rec_child_to_" + base.entity.name + "_" + base.name)
+
 				traversed[child.entity.name + "_" + child.name] = true
 				childrenRecurse(base, child, traversed)
 			}
@@ -216,33 +213,19 @@ function childrenRecurse(base, attackStep, traversed) {
 
 function parentRecurse(base, attackStep, traversed) {
 	var assetElem = document.getElementById('asset_' + attackStep.entity.name)
-	oldClass = assetElem.getAttributeNS(null, 'class')
-	assetElem.setAttributeNS(
-		null,
-		'class',
-		oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
-	)
+	appendClass(assetElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
 	if(attackStep.source_steps) {
 		attackStep.source_steps.forEach(function(parent) {
 			if(!traversed[parent.entity.name + "_" + parent.name]) {
 				var parentElem = document.getElementById(parent.entity.name + "_" + parent.name)
-				var oldClass = parentElem.getAttributeNS(null, 'class')
-				parentElem.setAttributeNS(
-					null, 
-					'class', 
-					oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
-				)
+				appendClass(parentElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
 
 				var pathElem = document.getElementById(
 					'path_' + parent.entity.name + "_" + parent.name +
 					'_to_' + attackStep.entity.name + "_" + attackStep.name
 				)
-				oldClass = pathElem.getAttributeNS(null, 'class')
-				pathElem.setAttributeNS(
-					null, 
-					'class', 
-					oldClass + " rec_parent_to_" + base.entity.name + "_" + base.name
-				)
+				appendClass(pathElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+
 				traversed[parent.entity.name + "_" + parent.name] = true
 				parentRecurse(base, parent, traversed)
 			}
@@ -291,27 +274,18 @@ function update() {
 	graph.attackPath = graph.attackPath.enter()
 		.append(function(d) {
 			var target = document.getElementById(d.target.entity.name + "_" + d.target.name)
-			var oldClass = target.getAttributeNS(null, 'class')
-			target.setAttributeNS(null, 'class', 
-				oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name
-			)
+			appendClass(target, "child_to_" + d.source.entity.name + "_" + d.source.name)
+
 			var source = document.getElementById(d.source.entity.name + "_" + d.source.name)
-			oldClass = source.getAttributeNS(null, 'class')
-			source.setAttributeNS(null, 'class', 
-				oldClass + " parent_to_" + d.target.entity.name + "_" + d.target.name
-			)
+			appendClass(source, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+			
 			var targetAsset = document.getElementById('asset_' + d.target.entity.name)
-			oldClass = targetAsset.getAttributeNS(null, 'class')
-			targetAsset.setAttributeNS(null, 'class', 
-				oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name +
-				" parent_to_" + d.target.entity.name + "_" + d.target.name
-			)
-			targetAsset = document.getElementById('asset_' + d.source.entity.name)
-			oldClass = targetAsset.getAttributeNS(null, 'class')
-			targetAsset.setAttributeNS(null, 'class', 
-				oldClass + " child_to_" + d.source.entity.name + "_" + d.source.name +
-				" parent_to_" + d.target.entity.name + "_" + d.target.name
-			)
+			appendClass(targetAsset, "child_to_" + d.source.entity.name + "_" + d.source.name)
+			appendClass(targetAsset, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+			
+			var sourceAsset = document.getElementById('asset_' + d.source.entity.name)
+			appendClass(sourceAsset, "child_to_" + d.source.entity.name + "_" + d.source.name)
+			appendClass(sourceAsset, "parent_to_" + d.target.entity.name + "_" + d.target.name)
 
 			if(d.source.entity.name == d.target.entity.name) {
 				return document.createElement('path')
