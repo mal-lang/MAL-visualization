@@ -30,7 +30,7 @@ var colors = [
 	["#DD5E03", "#FEAC72"]
 ]
 
-var root = {"children":[{"name":"Network","children":[{"name":"access","type":"or","targets":[{"name":"connect","entity_name":"Host","size":4000}]}]},{"name":"Host","children":[{"name":"connect","type":"or","targets":[{"name":"access","entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","entity_name":"Password","size":4000}]}]},{"name":"Password","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host"},{"source":"Host","target":"Password"},{"source":"User","target":"Password"}]}
+var root = {"children":[{"name":"Network","category":"System","children":[{"name":"access","type":"or","targets":[{"name":"connect","link":"hosts_NetworkAccess_networks","entity_name":"Host","size":4000}]}]},{"name":"Host","category":"System","children":[{"name":"connect","type":"or","targets":[{"name":"access","link":"none","entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","link":"none","entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","link":"none","entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","link":"none","entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","category":"System","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","link":"none","entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","link":"passwords_Credentials_user","entity_name":"Password","size":4000}]}]},{"name":"Password","category":"System","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","link":"passwords_Credentials_host","entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host","name":"NetworkAccess","leftName":"hosts","rightName":"networks"},{"source":"Host","target":"Password","name":"Credentials","leftName":"passwords","rightName":"host"},{"source":"User","target":"Password","name":"Credentials","leftName":"passwords","rightName":"user"}]}
 
 var categories = {}
 var numCategories = 0
@@ -180,12 +180,14 @@ update()
 
 function appendClass(element, newClass) {
 	var oldClass = element.getAttributeNS(null, 'class')
-	if(!oldClass.split(" ").includes(newClass)) {
-		element.setAttributeNS(
-			null, 
-			'class', 
-			oldClass + " " + newClass
-		)
+	if(oldClass) {
+		if(!oldClass.split(" ").includes(newClass)) {
+			element.setAttributeNS(
+				null, 
+				'class', 
+				oldClass + " " + newClass
+			)
+		}
 	}
 }
 
@@ -262,6 +264,9 @@ function update() {
 			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
 		})
 		.attr("class", "association")
+		.attr("id", function(d) {
+			return d.leftName + "_" + d.name + "_" + d.rightName
+		})
 
 	graph.asset = graph.asset.data(root.children)
 	graph.asset.exit().remove()
@@ -290,6 +295,17 @@ function update() {
 			if(d.source.entity.name == d.target.entity.name) {
 				return document.createElement('path')
 			}
+
+			/*
+			var association_id = d.association.leftName + "_" + 
+				d.association.name + "_" +
+				d.association.rightName
+
+			var association = document.getElementById(association_id)
+			appendClass(association, "child_to_" + d.source.entity.name + "_" + d.source.name)
+			appendClass(association, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+			*/
+
 			var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 			path.setAttributeNS(null, 'stroke-width', 1.1)
 			path.setAttributeNS(null, 'stroke', 'black')
@@ -309,6 +325,16 @@ function update() {
 		})
 		.merge(graph.attackPath)
 		.attr("visibility", function(d) {
+			//Reset correct classes
+			if(d.source.entity.name != d.target.entity.name) {
+				var association_id = d.association.leftName + "_" + 
+				d.association.name + "_" +
+				d.association.rightName
+
+				var association = document.getElementById(association_id)
+				appendClass(association, "child_to_" + d.source.entity.name + "_" + d.source.name)
+				appendClass(association, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+			}
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
 
@@ -623,8 +649,12 @@ function makeRelations(root) {
             if (entity.children) {
                 entity.children.forEach(function(attackStep) {
                     if (attackStep.target_steps) {
-                        attackStep.target_steps.forEach(function(target) {
-                            relation = {source: attackStep, target: target}
+                        attackStep.target_steps.forEach(function(target, i) {
+                            relation = {
+								source: attackStep, 
+								target: target,
+								association: attackStep.targets[i].link
+							}
                             relations.push(relation)
                         })
                     }
@@ -647,14 +677,14 @@ function initialize(root) {
             if (entity.children) {
                 entity.children.forEach(function(attack_step) {
                     attack_step.target_steps = []
-                    attack_step.source_steps = []
-                    attack_step.entity = entity
-                    attack_step.hidden = false;
+					attack_step.source_steps = []
+                    attack_step.entity = entity;
+					attack_step.hidden = false;
                     nodes.push(attack_step);
                 })
             }
         })
-    }
+	}
 
     if (root.children) {
         root.children.forEach(function(entity) {
@@ -671,7 +701,16 @@ function initialize(root) {
                             if (target) {
                                 attack_step.target_steps.push(target)
                                 target.source_steps.push(attack_step)
-                            }
+							}
+							var through = root.associations.filter(function(association) {
+								var association_id = association.leftName + "_" + 
+									association.name + "_" + association.rightName
+								return association_id == target_ref.link
+							})[0]
+							if (through) {
+								target_ref.link = through
+							}
+							
                         })
                     }
                     //entity.color = color(entity.name)
