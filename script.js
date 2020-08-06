@@ -175,6 +175,7 @@ var exportButton = d3.select('#sideMenu')
 graph.association = g.selectAll('.association')
 graph.asset = g.selectAll('.asset')
 graph.attackPath = g.selectAll('.attackpath')
+graph.associationPathLink = g.selectAll('.associationPathLink')
 
 update()
 
@@ -206,6 +207,12 @@ function childrenRecurse(base, attackStep, traversed) {
 				)
 				appendClass(pathElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 
+				var association_id = pathElem.getAttributeNS(null, 'data-association')
+				if(association_id != null) {
+					var associationElem = document.getElementById(association_id)
+					appendClass(associationElem, "rec_child_to_" + base.entity.name + "_" + base.name)
+				}
+
 				traversed[child.entity.name + "_" + child.name] = true
 				childrenRecurse(base, child, traversed)
 			}
@@ -227,6 +234,12 @@ function parentRecurse(base, attackStep, traversed) {
 					'_to_' + attackStep.entity.name + "_" + attackStep.name
 				)
 				appendClass(pathElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+
+				var association_id = pathElem.getAttributeNS(null, 'data-association')
+				if(association_id != null) {
+					var associationElem = document.getElementById(association_id)
+					appendClass(associationElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+				}
 
 				traversed[parent.entity.name + "_" + parent.name] = true
 				parentRecurse(base, parent, traversed)
@@ -259,13 +272,13 @@ function update() {
 		.append('line')
 		.attr('stroke-width', 2)
 		.style('stroke', 'grey')
-		.merge(graph.association)
-		.attr("visibility", function(d) {
-			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
-		})
 		.attr("class", "association")
 		.attr("id", function(d) {
 			return d.leftName + "_" + d.name + "_" + d.rightName
+		})
+		.merge(graph.association)
+		.attr("visibility", function(d) {
+			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
 		})
 
 	graph.asset = graph.asset.data(root.children)
@@ -274,6 +287,7 @@ function update() {
 		.append(createAssetBox)
 		.merge(graph.asset)
 		.attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
+	
 	graph.attackPath = graph.attackPath.data(relations)
 	graph.attackPath.exit().remove()
 	graph.attackPath = graph.attackPath.enter()
@@ -296,7 +310,6 @@ function update() {
 				return document.createElement('path')
 			}
 
-			/*
 			var association_id = d.association.leftName + "_" + 
 				d.association.name + "_" +
 				d.association.rightName
@@ -304,7 +317,6 @@ function update() {
 			var association = document.getElementById(association_id)
 			appendClass(association, "child_to_" + d.source.entity.name + "_" + d.source.name)
 			appendClass(association, "parent_to_" + d.target.entity.name + "_" + d.target.name)
-			*/
 
 			var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 			path.setAttributeNS(null, 'stroke-width', 1.1)
@@ -321,22 +333,21 @@ function update() {
 				' notClickable attackPath child_to_' + d.source.entity.name + "_" + d.source.name + 
 				' parent_to_' + d.target.entity.name + "_" + d.target.name
 			)
+			path.setAttributeNS(null, 'data-association', association_id)
 			return path
 		})
 		.merge(graph.attackPath)
 		.attr("visibility", function(d) {
-			//Reset correct classes
-			if(d.source.entity.name != d.target.entity.name) {
-				var association_id = d.association.leftName + "_" + 
-				d.association.name + "_" +
-				d.association.rightName
-
-				var association = document.getElementById(association_id)
-				appendClass(association, "child_to_" + d.source.entity.name + "_" + d.source.name)
-				appendClass(association, "parent_to_" + d.target.entity.name + "_" + d.target.name)
-			}
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
+	
+	graph.associationPathLink = graph.associationPathLink.data(relations)
+	graph.associationPathLink.exit().remove()
+	graph.associationPathLink = graph.associationPathLink.enter()
+		.append('line')
+		.attr('stroke-width', 1.4)
+		.style('stroke', 'blue')
+		.style('stroke-dasharray', '5,5')
 
 	var drag = d3.drag()
 		.on("start", draggedStart)
@@ -364,6 +375,7 @@ function ticked() {
 		.attr('y2', function(d) {
 			return d.target.y + (30 * d.target.children.length + 40)/2
 		})
+	
 	//Update Asset position
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
@@ -410,6 +422,55 @@ function ticked() {
 			" C " + c1 + " " + y1 + " " + 
 			c2 + " " + y2 + " " + x2 + " " + y2
 	})
+
+	graph.associationPathLink.attr('x1', function(d) {
+			if(d.association != "none") {
+				var path = document.getElementById('path_' + 
+					d.source.entity.name + "_" + 
+					d.source.name + '_to_' + 
+					d.target.entity.name + "_" + d.target.name)
+				var mid = path.getTotalLength() * 0.6
+				var midPoint = path.getPointAtLength(mid)
+				return midPoint.x
+			}
+		})
+		.attr('y1', function(d) {
+			if(d.association != "none") {
+				var path = document.getElementById('path_' + 
+					d.source.entity.name + "_" + 
+					d.source.name + '_to_' + 
+					d.target.entity.name + "_" + d.target.name)
+				var mid = path.getTotalLength() * 0.6
+				var midPoint = path.getPointAtLength(mid)
+				return midPoint.y
+			}
+		})
+		.attr('x2', function(d) {
+			if(d.association != "none") {
+				var path = document.getElementById('path_' + 
+					d.source.entity.name + "_" + 
+					d.source.name + '_to_' + 
+					d.target.entity.name + "_" + d.target.name)
+				var association_id = path.getAttributeNS(null, 'data-association')
+				var association = document.getElementById(association_id)
+				var mid = association.getTotalLength() * 0.4
+				var midPoint = association.getPointAtLength(mid)
+				return midPoint.x
+			}
+		})
+		.attr('y2', function(d) {
+			if(d.association != "none") {
+				var path = document.getElementById('path_' + 
+					d.source.entity.name + "_" + 
+					d.source.name + '_to_' + 
+					d.target.entity.name + "_" + d.target.name)
+				var association_id = path.getAttributeNS(null, 'data-association')
+				var association = document.getElementById(association_id)
+				var mid = association.getTotalLength() * 0.4
+				var midPoint = association.getPointAtLength(mid)
+				return midPoint.y
+			}
+		})
 }
 
 function removeMenuAndHide() {
@@ -496,7 +557,7 @@ function createAssetBox(d) {
 	rect.setAttributeNS(
 		null, 
 		'height', 
-		attackStepHeight * d.children.length + labelHeight)
+		attackStepHeight * d.children.length + labelHeight + sideMargin/2)
 	rect.setAttributeNS(null, 'rx', 5)
 	rect.setAttributeNS(null, 'ry', 5)
 	group.appendChild(rect)
