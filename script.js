@@ -8,6 +8,7 @@ svg.on("dblclick", function(){
 	d3.selectAll(".attackStep").attr('opacity', 1.0)
 	d3.selectAll(".asset").attr('opacity', 1.0)
 	d3.selectAll(".association").attr('opacity', 1.0)
+	d3.selectAll(".link_path_association").attr('opacity', 1.0)
 })
 var g = svg.append("g")
 
@@ -201,16 +202,19 @@ function childrenRecurse(base, attackStep, traversed) {
 				var childElem = document.getElementById(child.entity.name + "_" + child.name)
 				appendClass(childElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 				
-				var pathElem = document.getElementById(
-					'path_' + attackStep.entity.name + "_" + attackStep.name +
+				var path_id = 'path_' + attackStep.entity.name + "_" + attackStep.name +
 					'_to_' + child.entity.name + "_" + child.name
-				)
+				var pathElem = document.getElementById(path_id)
 				appendClass(pathElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 
 				var association_id = pathElem.getAttributeNS(null, 'data-association')
-				if(association_id != null) {
+				if(association_id != null && association_id != "undefined") {
 					var associationElem = document.getElementById(association_id)
 					appendClass(associationElem, "rec_child_to_" + base.entity.name + "_" + base.name)
+
+					var link_id = 'link_' + path_id + '_' + association_id
+					var linkElem = document.getElementById(link_id)
+					appendClass(linkElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 				}
 
 				traversed[child.entity.name + "_" + child.name] = true
@@ -229,16 +233,19 @@ function parentRecurse(base, attackStep, traversed) {
 				var parentElem = document.getElementById(parent.entity.name + "_" + parent.name)
 				appendClass(parentElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
 
-				var pathElem = document.getElementById(
-					'path_' + parent.entity.name + "_" + parent.name +
+				var path_id = 'path_' + parent.entity.name + "_" + parent.name +
 					'_to_' + attackStep.entity.name + "_" + attackStep.name
-				)
+				var pathElem = document.getElementById(path_id)
 				appendClass(pathElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
 
 				var association_id = pathElem.getAttributeNS(null, 'data-association')
-				if(association_id != null) {
+				if(association_id != null && association_id != "undefined") {
 					var associationElem = document.getElementById(association_id)
 					appendClass(associationElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+
+					var link_id = 'link_' + path_id + '_' + association_id
+					var linkElem = document.getElementById(link_id)
+					appendClass(linkElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
 				}
 
 				traversed[parent.entity.name + "_" + parent.name] = true
@@ -288,6 +295,32 @@ function update() {
 		.merge(graph.asset)
 		.attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
 	
+	graph.associationPathLink = graph.associationPathLink.data(relations)
+	graph.associationPathLink.exit().remove()
+	graph.associationPathLink = graph.associationPathLink.enter()
+		.append('line')
+		.attr('stroke-width', 1.4)
+		.style('stroke', 'blue')
+		.style('stroke-dasharray', '5,5')
+		.attr('id', function(d) {
+			if(d.association == "none") {
+				return
+			}
+			else {
+				var path = 'path_' + d.source.entity.name + "_" + d.source.name + 
+					'_to_' + d.target.entity.name + "_" + d.target.name
+				var association = d.association.leftName + "_" + 
+					d.association.name + "_" + 
+					d.association.rightName 
+				return 'link_' + path + '_' + association
+			}
+		})
+		.attr('class', 'link_path_association')
+		.merge(graph.associationPathLink)
+		.attr("visibility", function(d) {
+			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
+		})
+
 	graph.attackPath = graph.attackPath.data(relations)
 	graph.attackPath.exit().remove()
 	graph.attackPath = graph.attackPath.enter()
@@ -310,13 +343,22 @@ function update() {
 				return document.createElement('path')
 			}
 
-			var association_id = d.association.leftName + "_" + 
-				d.association.name + "_" +
-				d.association.rightName
+			if(d.association != "none") {
+				var association_id = d.association.leftName + "_" + 
+					d.association.name + "_" +
+					d.association.rightName
 
-			var association = document.getElementById(association_id)
-			appendClass(association, "child_to_" + d.source.entity.name + "_" + d.source.name)
-			appendClass(association, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+				var association = document.getElementById(association_id)
+				appendClass(association, "child_to_" + d.source.entity.name + "_" + d.source.name)
+				appendClass(association, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+
+				var path_id = 'path_' + d.source.entity.name + "_" + d.source.name + 
+					'_to_' + d.target.entity.name + "_" + d.target.name
+				var link_id = 'link_' + path_id + '_' + association_id
+				var linkElem = document.getElementById(link_id)
+				appendClass(linkElem, "child_to_" + d.source.entity.name + "_" + d.source.name)
+				appendClass(linkElem, "parent_to_" + d.target.entity.name + "_" + d.target.name)
+			}
 
 			var path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 			path.setAttributeNS(null, 'stroke-width', 1.1)
@@ -340,14 +382,6 @@ function update() {
 		.attr("visibility", function(d) {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
-	
-	graph.associationPathLink = graph.associationPathLink.data(relations)
-	graph.associationPathLink.exit().remove()
-	graph.associationPathLink = graph.associationPathLink.enter()
-		.append('line')
-		.attr('stroke-width', 1.4)
-		.style('stroke', 'blue')
-		.style('stroke-dasharray', '5,5')
 
 	var drag = d3.drag()
 		.on("start", draggedStart)
@@ -422,55 +456,35 @@ function ticked() {
 			" C " + c1 + " " + y1 + " " + 
 			c2 + " " + y2 + " " + x2 + " " + y2
 	})
-
-	graph.associationPathLink.attr('x1', function(d) {
-			if(d.association != "none") {
-				var path = document.getElementById('path_' + 
-					d.source.entity.name + "_" + 
-					d.source.name + '_to_' + 
-					d.target.entity.name + "_" + d.target.name)
-				var mid = path.getTotalLength() * 0.6
-				var midPoint = path.getPointAtLength(mid)
-				return midPoint.x
-			}
-		})
-		.attr('y1', function(d) {
-			if(d.association != "none") {
-				var path = document.getElementById('path_' + 
-					d.source.entity.name + "_" + 
-					d.source.name + '_to_' + 
-					d.target.entity.name + "_" + d.target.name)
-				var mid = path.getTotalLength() * 0.6
-				var midPoint = path.getPointAtLength(mid)
-				return midPoint.y
-			}
-		})
-		.attr('x2', function(d) {
-			if(d.association != "none") {
-				var path = document.getElementById('path_' + 
-					d.source.entity.name + "_" + 
-					d.source.name + '_to_' + 
-					d.target.entity.name + "_" + d.target.name)
-				var association_id = path.getAttributeNS(null, 'data-association')
+	
+	graph.associationPathLink.each(function(d) {
+		var path = 'path_' + d.source.entity.name + "_" + d.source.name + 
+					'_to_' + d.target.entity.name + "_" + d.target.name
+		var association = d.association.leftName + "_" + 
+			d.association.name + "_" + 
+			d.association.rightName
+		var apl = d3.select('#link_' + path + '_' + association)
+		if(d.association != "none") {
+			var path = document.getElementById('path_' + 
+				d.source.entity.name + "_" + 
+				d.source.name + '_to_' + 
+				d.target.entity.name + "_" + d.target.name)
+			var mid = path.getTotalLength() * 0.6
+			var midPoint = path.getPointAtLength(mid)
+			var x1 = midPoint.x
+			var y1 = midPoint.y
+			var association_id = path.getAttributeNS(null, 'data-association')
+			if(association_id != null) {
 				var association = document.getElementById(association_id)
-				var mid = association.getTotalLength() * 0.4
-				var midPoint = association.getPointAtLength(mid)
-				return midPoint.x
+				mid = association.getTotalLength() * 0.4
+				midPoint = association.getPointAtLength(mid)
+				apl.attr('x1', x1)
+				apl.attr('y1', y1)
+				apl.attr('x2', midPoint.x)
+				apl.attr('y2', midPoint.y)
 			}
-		})
-		.attr('y2', function(d) {
-			if(d.association != "none") {
-				var path = document.getElementById('path_' + 
-					d.source.entity.name + "_" + 
-					d.source.name + '_to_' + 
-					d.target.entity.name + "_" + d.target.name)
-				var association_id = path.getAttributeNS(null, 'data-association')
-				var association = document.getElementById(association_id)
-				var mid = association.getTotalLength() * 0.4
-				var midPoint = association.getPointAtLength(mid)
-				return midPoint.y
-			}
-		})
+		}
+	})
 }
 
 function removeMenuAndHide() {
@@ -482,6 +496,7 @@ function removeMenuAndHide() {
 		d3.selectAll('.asset').attr("opacity", "0.0")
 	}
 	d3.selectAll('.association').attr("opacity", "0.0")
+	d3.selectAll('.link_path_association').attr("opacity", "0.0")
 }
 
 function traceChildren(attackStep) {
