@@ -48,14 +48,15 @@ root.children.forEach(function(element) {
 initialize(root);
 set_id(root);
 var relations = makeRelations(root);
+var isa = makeIsa(root);
 setAssociationId(root);
 
 var simulation = d3.forceSimulation(root.children)
-	.force('link', d3.forceLink().links(root.associations))
+	.force('link', d3.forceLink().links(root.associations).distance(600))
 	.force('center', d3.forceCenter(width/2, height/2))
 	.force('collide', d3.forceCollide(200))
-	.force('x', d3.forceX(width/2).strength(0.0125))
-    .force('y', d3.forceY(height/2).strength(0.0275))
+	//.force('x', d3.forceX(width/2).strength(0.0125))
+    //.force('y', d3.forceY(height/2).strength(0.0275))
 	.on('tick', ticked)
 
 svg.call(d3.zoom()
@@ -175,6 +176,7 @@ var exportButton = d3.select('#sideMenu')
 
 graph.association = g.selectAll('.association')
 graph.asset = g.selectAll('.asset')
+graph.isa = g.selectAll('.isa')
 graph.attackPath = g.selectAll('.attackpath')
 graph.associationPathLink = g.selectAll('.associationPathLink')
 
@@ -288,13 +290,24 @@ function update() {
 			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
 		})
 
+	graph.isa = graph.isa.data(isa)
+	graph.isa.exit().remove()
+	graph.isa = graph.isa.enter()
+		.append('line')
+		.attr('stroke-width', 1.4)
+		.style('stroke', 'red')
+		.merge(graph.isa)
+		.attr("visibility", function(d) {
+			return d.subAsset.hidden || d.superAsset.hidden ? "hidden" : "visible"
+		})
+
 	graph.asset = graph.asset.data(root.children)
 	graph.asset.exit().remove()
 	graph.asset = graph.asset.enter()
 		.append(createAssetBox)
 		.merge(graph.asset)
 		.attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
-	
+
 	graph.associationPathLink = graph.associationPathLink.data(relations)
 	graph.associationPathLink.exit().remove()
 	graph.associationPathLink = graph.associationPathLink.enter()
@@ -414,6 +427,19 @@ function ticked() {
 	graph.asset.attr('transform', function(d) {
 		return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
 	})
+
+	graph.isa.attr('x1', function(d) {
+			return d.subAsset.x
+		})
+		.attr('y1', function(d) {
+			return d.subAsset.y + (30 * d.subAsset.children.length + 40)/2
+		})
+		.attr('x2', function(d) {
+			return d.superAsset.x
+		})
+		.attr('y2', function(d) {
+			return d.superAsset.y + (30 * d.superAsset.children.length + 40)/2
+		})
 	
     //Update Attack path position
 	graph.attackPath.attr('d', function(d) {
@@ -456,14 +482,9 @@ function ticked() {
 			" C " + c1 + " " + y1 + " " + 
 			c2 + " " + y2 + " " + x2 + " " + y2
 	})
-	
+
 	graph.associationPathLink.each(function(d) {
-		var path = 'path_' + d.source.entity.name + "_" + d.source.name + 
-					'_to_' + d.target.entity.name + "_" + d.target.name
-		var association = d.association.leftName + "_" + 
-			d.association.name + "_" + 
-			d.association.rightName
-		var apl = d3.select('#link_' + path + '_' + association)
+		var apl = d3.select(this)
 		if(d.association != "none") {
 			var path = document.getElementById('path_' + 
 				d.source.entity.name + "_" + 
@@ -603,13 +624,16 @@ function createAssetBox(d) {
 		)
 		asbox.setAttributeNS(null, 'id', d.name+ "_" +attackStep.name)
 		asbox.setAttributeNS(null, 'class', "attackStep ")
-		group.append(asbox)
+		
 		//Name of each Attack Step
 		var text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 		if(attackStep.type == "or") {
 			text.textContent = "| " + attackStep.name;
 		} else if(attackStep.type == "and") {
 			text.textContent = "& " + attackStep.name;
+		} else if(attackStep.type == "defense") {
+			asbox.setAttributeNS(null, 'fill', 'red')
+			text.textContent = "# " + attackStep.name;
 		} else {
 			text.textContent = attackStep.name;
 		}
@@ -621,7 +645,13 @@ function createAssetBox(d) {
 		text.setAttributeNS(null, 'text-anchor', 'middle')
 		text.setAttributeNS(null, 'font-family', 'Arial')
 		text.setAttributeNS(null, 'fill', 'black')
-		text.setAttributeNS(null, 'class', 'notClickable')
+		text.setAttributeNS(null, 'class', 'textHover')
+
+		var title = document.createElementNS('http://www.w3.org/2000/svg', 'title')
+		title.innerHTML = attackStep.name
+		text.append(title)
+
+		group.append(asbox)
 		group.appendChild(text)
     }
     
@@ -634,7 +664,7 @@ function createAssetBox(d) {
 				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)
 				var yt = (relation.index * attackStepHeight + labelHeight + 12)
-                var bend = 8
+                var bend = 4
 				if(attackStep.index < relation.index) {
 					var start = "M " + (boxWidth-arrowMargin) + " " + ys + " "
 					var c1 = "" + ((boxWidth-arrowMargin) + 20 + 
@@ -741,6 +771,22 @@ function makeRelations(root) {
     return relations
 }
 
+function makeIsa(root) {
+	var isa = []
+    if (root.children) {
+        root.children.forEach(function(subAsset) {
+			if(subAsset.superAsset) {
+				isaRelation = {
+					subAsset: subAsset,
+					superAsset: subAsset.superAsset
+				}
+				isa.push(isaRelation)
+			}
+		})
+	}
+	return isa
+}
+
 function initialize(root) {
 
     nodes = []
@@ -764,6 +810,11 @@ function initialize(root) {
 
     if (root.children) {
         root.children.forEach(function(entity) {
+			if (entity.superAsset) {
+				entity.superAsset = root.children.filter(function(asset) {
+					return asset.name == entity.superAsset
+				})[0]
+			} 
             if (entity.children) {
                 entity.children.forEach(function(attack_step) {
                     //attack_step.color = color(entity.name)
