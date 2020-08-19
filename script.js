@@ -33,7 +33,7 @@ var colors = [
 	["#DD5E03", "#FEAC72"]
 ]
 
-var root ={"children":[{"name":"Network","category":"System","children":[{"name":"access","type":"or","targets":[{"name":"connect","links":"hosts_NetworkAccess_networks","entity_name":"Host","size":4000}]}]},{"name":"Host","category":"System","children":[{"name":"connect","type":"or","targets":[{"name":"access","links":"","entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","links":"","entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","links":"","entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","links":"","entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","category":"System","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","links":"","entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","links":"passwords_Credentials_user","entity_name":"Password","size":4000}]}]},{"name":"Password","category":"System","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","links":"passwords_Credentials_host","entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host","name":"NetworkAccess","leftName":"hosts","rightName":"networks"},{"source":"Host","target":"Password","name":"Credentials","leftName":"passwords","rightName":"host"},{"source":"User","target":"Password","name":"Credentials","leftName":"passwords","rightName":"user"}]}
+var root = {"children":[{"name":"Network","category":"System","children":[{"name":"access","type":"or","targets":[{"name":"connect","associations":["hosts_NetworkAccess_networks"],"entity_name":"Host","size":4000}]}]},{"name":"Host","category":"System","children":[{"name":"connect","type":"or","targets":[{"name":"access","associations":[],"entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","associations":[],"entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","associations":[],"entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","associations":[],"entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","category":"System","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","associations":[],"entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","associations":["passwords_Credentials_user"],"entity_name":"Password","size":4000}]}]},{"name":"Password","category":"System","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","associations":["passwords_Credentials_host"],"entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host","name":"NetworkAccess","leftName":"hosts","rightName":"networks"},{"source":"Host","target":"Password","name":"Credentials","leftName":"passwords","rightName":"host"},{"source":"User","target":"Password","name":"Credentials","leftName":"passwords","rightName":"user"}]};
 
 var categories = {}
 var numCategories = 0
@@ -230,16 +230,18 @@ function setChildrenAndParents() {
 	}
 	if(relations2) {
 		relations2.forEach(function(r) {
-			if(r.association && r.association != "") {
-				associationElem = document.getElementById(getAssociationId(r.association))
-				appendClass(associationElem, "child_to_" + r.source.entity.name + "_" + r.source.name)
-				appendClass(associationElem, "parent_to_" + r.target.entity.name + "_" + r.target.name)
-				linkElem = document.getElementById(
-					"link_" + getAssociationId(r.association) + 
-					"_" + getPathId({source: r.source, target: r.target})
-				)
-				appendClass(linkElem, "child_to_" + r.source.entity.name + "_" + r.source.name)
-				appendClass(linkElem, "parent_to_" + r.target.entity.name + "_" + r.target.name)
+			if(r.associations) {
+				r.associations.forEach(function(a, i) {
+					associationElem = document.getElementById(getAssociationId(a))
+					appendClass(associationElem, "child_to_" + r.source.entity.name + "_" + r.source.name)
+					appendClass(associationElem, "parent_to_" + r.target.entity.name + "_" + r.target.name)
+					linkElem = document.getElementById(
+						"link_" + getAssociationId(a) + 
+						"_" + getPathId({source: r.source, target: r.target})
+					)
+					appendClass(linkElem, "child_to_" + r.source.entity.name + "_" + r.source.name)
+					appendClass(linkElem, "parent_to_" + r.target.entity.name + "_" + r.target.name)
+				})
 			} else if(r.link) {
 				r.link.forEach(function(l, i) {
                     if(i+1 < r.link.length) {
@@ -294,17 +296,20 @@ function childrenRecurse(base, attackStep, traversed) {
 				appendClass(pathElem, "rec_child_to_" + base.entity.name + "_" + base.name)
 
 				if(relationMap[path_id]) {
-					association = relationMap[path_id].association
+					association = relationMap[path_id].associations
 					link = relationMap[path_id].link
-					if(association && association.source && association.target) {
-						var associationElem = document.getElementById(getAssociationId(association))
-						appendClass(associationElem, "rec_child_to_" + base.entity.name + "_" + base.name)
-
-						linkElem = document.getElementById(
-							"link_" + getAssociationId(association) + 
-							"_" + getPathId({source: attackStep, target: child})
-						)
-						appendClass(linkElem, "rec_child_to_" + base.entity.name + "_" + base.name)
+					if(association) {
+						association.forEach(function(a, i) {
+							if(attackStep.entity.name != child.entity.name) {
+								var associationElem = document.getElementById(getAssociationId(a))
+								appendClass(associationElem, "rec_child_to_" + base.entity.name + "_" + base.name)
+								linkElem = document.getElementById(
+									"link_" + getAssociationId(a) + 
+									"_" + getPathId({source: attackStep, target: child})
+								)
+								appendClass(linkElem, "rec_child_to_" + base.entity.name + "_" + base.name)
+							}
+						})
 					} else if(link) {
 						link.forEach(function(l, i) {
 							if(i+1 < link.length) {
@@ -348,17 +353,20 @@ function parentRecurse(base, attackStep, traversed) {
 				appendClass(pathElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
 
 				if(relationMap[path_id]) {
-					association = relationMap[path_id].association
+					association = relationMap[path_id].associations
 					link = relationMap[path_id].link
-					if(association && association.source && association.target) {
-						var associationElem = document.getElementById(getAssociationId(association))
-						appendClass(associationElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
-
-						linkElem = document.getElementById(
-							"link_" + getAssociationId(association) + 
-							"_" + getPathId({source: parent, target: attackStep})
-						)
-						appendClass(linkElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+					if(association) {
+						association.forEach(function(a, i) {
+							if(parent.entity.name != attackStep.entity.name) {
+								var associationElem = document.getElementById(getAssociationId(a))
+								appendClass(associationElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+								linkElem = document.getElementById(
+									"link_" + getAssociationId(a) + 
+									"_" + getPathId({source: parent, target: attackStep})
+								)
+								appendClass(linkElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
+							}
+						})
 					} else if(link) {
 						link.forEach(function(l, i) {
 							if(i+1 < link.length) {
@@ -433,6 +441,42 @@ function update() {
             return d.subAsset.hidden || d.superAsset.hidden ? "hidden" : "visible"
         })
 
+	graph.aLink = graph.aLink.data(links.aLinks)
+	graph.aLink.exit().remove()
+	graph.aLink = graph.aLink.enter()
+		.append("line")
+		.attr('stroke-width', 1.4)
+		.style('stroke', 'blue')
+		.style('stroke-dasharray', '5,5')
+		.attr('class', 'link')
+		.attr('id', function(d) {
+			return "link_" + getAssociationId(d.association) + "_" + getPathId(d.path)
+		})
+		.merge(graph.aLink)
+		.attr("visibility", function(d) {
+			return d.path.source.entity.hidden || d.path.target.entity.hidden ? "hidden" : "visible"
+		})
+
+	graph.iLink = graph.iLink.data(links.iLinks)
+	graph.iLink.exit().remove()
+	graph.iLink = graph.iLink.enter()
+		.append("line")
+		.attr('stroke-width', 1.4)
+		.style('stroke', 'red')
+		.style('stroke-dasharray', '5,5')
+		.attr('class', 'link')
+		.attr('id', function(d) {
+			var link = {
+				subAsset: {name: d.link.source},
+				superAsset: {name: d.link.target},
+			}
+			return "link_" + getInheritanceId(link) + "_" + getPathId(d.path)
+		})
+		.merge(graph.iLink)
+		.attr("visibility", function(d) {
+			return d.path.source.entity.hidden || d.path.target.entity.hidden ? "hidden" : "visible"
+		})
+
     graph.asset = graph.asset.data(root.children)
     graph.asset.exit().remove()
     graph.asset = graph.asset.enter()
@@ -466,43 +510,8 @@ function update() {
         .merge(graph.attackPath)
 		.attr("visibility", function(d) {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
-        })
-    
-    graph.aLink = graph.aLink.data(links.aLinks)
-    graph.aLink.exit().remove()
-    graph.aLink = graph.aLink.enter()
-        .append("line")
-        .attr('stroke-width', 1.4)
-		.style('stroke', 'blue')
-		.style('stroke-dasharray', '5,5')
-		.attr('class', 'link')
-		.attr('id', function(d) {
-			return "link_" + getAssociationId(d.association) + "_" + getPathId(d.path)
 		})
-        .merge(graph.aLink)
-        .attr("visibility", function(d) {
-			return d.path.source.entity.hidden || d.path.target.entity.hidden ? "hidden" : "visible"
-		})
-
-    graph.iLink = graph.iLink.data(links.iLinks)
-    graph.iLink.exit().remove()
-    graph.iLink = graph.iLink.enter()
-        .append("line")
-        .attr('stroke-width', 1.4)
-        .style('stroke', 'red')
-		.style('stroke-dasharray', '5,5')
-		.attr('class', 'link')
-		.attr('id', function(d) {
-			var link = {
-				subAsset: {name: d.link.source},
-				superAsset: {name: d.link.target},
-			}
-			return "link_" + getInheritanceId(link) + "_" + getPathId(d.path)
-		})
-        .merge(graph.iLink)
-        .attr("visibility", function(d) {
-			return d.path.source.entity.hidden || d.path.target.entity.hidden ? "hidden" : "visible"
-		})
+		
 }
 
 function ticked() {
@@ -873,7 +882,7 @@ function makeRelations(root) {
                             relation = {
 								source: attackStep, 
 								target: target,
-								association: attackStep.targets[i].links
+								associations: attackStep.targets[i].links
 							}
                             relations.push(relation)
                         })
@@ -881,14 +890,14 @@ function makeRelations(root) {
                 })
             }
         })
-    }
+	}
     return relations
 }
 
 function setRelationAssociations(relations, associations) {
     var relations2 = relations.filter(function(d) {
-        return d.source.entity.name != d.target.entity.name
-    })
+		return d.source.entity.name != d.target.entity.name
+	})
     idMap = {}
 	if (associations) {
         associations.forEach(function(a) {
@@ -898,10 +907,8 @@ function setRelationAssociations(relations, associations) {
 	}
     if (relations2) {
         relations2.forEach(function(r) {
-            if(idMap[r.association] != undefined) {
-				r.association = idMap[r.association]
-            } else {
-                r.association = undefined
+            if(r.associations.length == 0) {
+                r.associations = undefined
                 if(r.source.entity.superAsset) {
                     var links = []
                     var asset = r.source.entity
@@ -939,14 +946,16 @@ function makeLinks(relations) {
     var iLinks = []
     if(relations){
         relations.forEach(function(r) {
-            if(r.association) {
-                aLinks.push({
-                    path: {
-                        source: r.source, 
-                        target: r.target
-                    }, 
-                    association: r.association
-                })
+            if(r.associations) {
+				r.associations.forEach(function(a, i) {
+					aLinks.push({
+						path: {
+							source: r.source, 
+							target: r.target
+						}, 
+						association: a
+					})
+				})
             } else if(r.link) {
                 r.link.forEach(function(l, i) {
                     if(i+1 < r.link.length) {
@@ -964,7 +973,7 @@ function makeLinks(relations) {
 				})
             }
         })
-    }
+	}
     return {aLinks: aLinks, iLinks: iLinks}
 }
 
@@ -1011,15 +1020,19 @@ function initialize(root) {
                                 attack_step.target_steps.push(target)
                                 target.source_steps.push(attack_step)
 							}
-							var through = root.associations.filter(function(association) {
-								var association_id = association.leftName + "_" + 
-									association.name + "_" + association.rightName
-								return association_id == target_ref.link
-							})[0]
-							if (through) {
-								target_ref.link = through
+							target_ref.links = []
+							if (target_ref.associations) {
+								target_ref.associations.forEach(function(target_association) {
+									var through = root.associations.filter(function(association) {
+										var association_id = association.leftName + "_" + 
+											association.name + "_" + association.rightName
+										return association_id == target_association
+									})[0]
+									if (through) {
+										target_ref.links.push(through)
+									}
+								})
 							}
-							
                         })
                     }
                     //entity.color = color(entity.name)
@@ -1027,5 +1040,34 @@ function initialize(root) {
                 })
             }
         })
+	}
+}
+
+function export_svg() {
+    var svg = document.getElementById("svg_content")
+    //get svg source.
+    var serializer = new XMLSerializer();
+    var source = serializer.serializeToString(svg);
+
+    //add name spaces.
+    if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
+    if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+    }
+
+    //add xml declaration
+    source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+	//convert svg source to URI data scheme.
+    var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
+	
+	var link = document.createElement("a");
+	link.download = "MAL.svg"
+	link.href = url
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	delete link;
 }
