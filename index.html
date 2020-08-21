@@ -9,30 +9,70 @@
         html, body { margin:0; padding:0px; width:100%; white-space: nowrap;}
         .textHover:active { pointer-events: none; }
         .notClickable { pointer-events: none; }
-        #sideMenu { 
-            overflow: hidden;
-            position: relative;
+        #sideMenu {
             float: left;
             height: 98vh;
-            width: 180px;
-            background-color: #FD7121;
+            width: 200px;
+            background-color: white;
             text-align: center;
-            white-space: normal; 
+            white-space: normal;
+            /*user-select: none;*/
+        }
+        #menu {
+            position: relative;
+            width: 200px;
+            text-align: center;
+            white-space: normal;
+            margin-top: 10px; 
+        }
+        #assetMenu { 
+            overflow-y: scroll;
+            height: 85%;
+            width: 200px;
+            text-align: center;
+            white-space: normal;
+            margin-top: 10px; 
+        }
+        #exportMenu {
+            /*height: 10px;*/
+            width: 200px;
+            text-align: center;
+            white-space: normal;
+            margin-top: 10px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #svgContainer {
+            height: 98vh;
+            overflow: hidden;
         }
         .font {
             font-family: Arial;
         }
     </style>
     <body oncontextmenu="return false;">
-        <div id="sideMenu"></div>
-        <svg id="svg_content" width="1700" height="960" style="display: inline-block">
-            <defs>
-                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"
-                    markerWidth="10" markerHeight="10"
-                    orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" />
-                </marker>
-            </defs>
-        </svg>
+        <div id="sideMenu">
+            <div id="menu"></div>
+            <div id="assetMenu"></div>
+            <div id="exportMenu"></div>
+        </div>
+        <div id="svgContainer">
+            <svg id="svg_content" width="1700" height="960" style="display: inline-block">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5"
+                        markerWidth="10" markerHeight="10"
+                        orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" />
+                    </marker>
+                    <marker id="arrow2" viewBox="0 0 10 10" refX="5" refY="5"
+                        markerWidth="10" markerHeight="10"
+                        orient="auto-start-reverse"
+                        fill="gray">
+                        <path d="M 0 0 L 10 5 L 0 10 z" />
+                    </marker>
+                </defs>
+            </svg>
+        </div>
+        
     </body>
 </html>
