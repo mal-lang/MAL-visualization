@@ -478,7 +478,7 @@ function update() {
         .merge(graph.isa)
         .attr("visibility", function(d) {
             return d.subAsset.hidden || d.superAsset.hidden ? "hidden" : "visible"
-        })
+		})
 
 	graph.aLink = graph.aLink.data(links.aLinks)
 	graph.aLink.exit().remove()
@@ -556,7 +556,6 @@ function update() {
 		.attr("visibility", function(d) {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
-		
 }
 
 function ticked() {
@@ -571,8 +570,8 @@ function ticked() {
     })
     .attr('y2', function(d) {
         return d.target.y + (30 * d.target.children.length + 40)/2
-    })
-
+	})
+	
 	graph.isa.attr('points', function(d){
 		var x1 = d.subAsset.x
 		var y1 = d.subAsset.y + (30 * d.subAsset.children.length + 40)/2
@@ -1105,7 +1104,13 @@ function initialize(root) {
 }
 
 function export_svg() {
-    var svg = document.getElementById("svg_content")
+	var svg = document.getElementById("svg_content")
+
+	//Remove class names
+	svg.childNodes[3].childNodes.forEach(function(e) {
+		e.setAttributeNS(null, 'class', '')
+	})
+
     //get svg source.
     var serializer = new XMLSerializer();
     var source = serializer.serializeToString(svg);
@@ -1122,8 +1127,7 @@ function export_svg() {
     source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
 
 	//convert svg source to URI data scheme.
-    var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
-
+	var url = "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(source);
 	var link = document.createElement("a");
 	link.download = "MAL.svg"
 	link.href = url
@@ -1131,4 +1135,6 @@ function export_svg() {
 	link.click();
 	document.body.removeChild(link);
 	delete link;
+
+	document.body.innerHTML = "Refresh page";
 }
