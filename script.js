@@ -1,4 +1,6 @@
 var svg = d3.select('svg');
+
+//Reset visibility on double click
 svg.on("dblclick", function(){
 	var menu = document.getElementById('clickMenu')
 	if(menu != null) {
@@ -18,12 +20,14 @@ var width = svg.attr("width")
 var height = svg.attr("height");
 var graph = {}
 
+//Asset box numbers
 var boxWidth = 340
 var labelHeight = 40
 var attackStepHeight = 30
 var sideMargin = 30
 var arrowMargin = 85
 
+//Colors
 var colors = [
 //	[Dark shade, light shade]
 	["#264D7D", "#447EC5"],
@@ -33,8 +37,9 @@ var colors = [
 	["#DD5E03", "#FEAC72"]
 ]
 
-var root = {"children":[{"name":"Network","category":"System","children":[{"name":"access","type":"or","targets":[{"name":"connect","associations":["hosts_NetworkAccess_networks"],"entity_name":"Host","size":4000}]}]},{"name":"Host","category":"System","children":[{"name":"connect","type":"or","targets":[{"name":"access","associations":[],"entity_name":"Host","size":4000}]},{"name":"authenticate","type":"or","targets":[{"name":"access","associations":[],"entity_name":"Host","size":4000}]},{"name":"guessPassword","type":"or","targets":[{"name":"guessedPassword","associations":[],"entity_name":"Host","size":4000}]},{"name":"guessedPassword","type":"or","targets":[{"name":"authenticate","associations":[],"entity_name":"Host","size":4000}]},{"name":"access","type":"and","targets":[]}]},{"name":"User","category":"System","children":[{"name":"attemptPhishing","type":"or","targets":[{"name":"phish","associations":[],"entity_name":"User","size":4000}]},{"name":"phish","type":"or","targets":[{"name":"obtain","associations":["passwords_Credentials_user"],"entity_name":"Password","size":4000}]}]},{"name":"Password","category":"System","children":[{"name":"obtain","type":"or","targets":[{"name":"authenticate","associations":["passwords_Credentials_host"],"entity_name":"Host","size":4000}]}]}],"associations":[{"source":"Network","target":"Host","name":"NetworkAccess","leftName":"hosts","rightName":"networks"},{"source":"Host","target":"Password","name":"Credentials","leftName":"passwords","rightName":"host"},{"source":"User","target":"Password","name":"Credentials","leftName":"passwords","rightName":"user"}]}
+var root = {{JSON}}
 
+//Set category indices
 var categories = {}
 var numCategories = 0
 root.children.forEach(function(element) {
@@ -47,16 +52,16 @@ root.children.forEach(function(element) {
 	}
 })
 
+//Initialize data. Functions are defined in initialize.js
 initialize(root);
 set_id(root);
 setAssociationId(root);
-var assets = root.children
-var associations = root.associations
 var isa = makeIsa(root);
 var relations = makeRelations(root);
-var relations2 = setRelationAssociations(relations, associations);
+var relations2 = setRelationAssociations(relations, root.associations);
 var links = makeLinks(relations2)
 
+//Create map for asset lookup
 var assetMap = {}
 if(root.children) {
 	root.children.forEach(function(a) {
@@ -64,6 +69,7 @@ if(root.children) {
 	})
 }
 
+//Create map for relation lookup
 var relationMap = {}
 if(relations) {
 	relations.forEach(function(d) {
@@ -79,6 +85,7 @@ var simulation = d3.forceSimulation(root.children)
     .force('y', d3.forceY(height/2).strength(0.0275))
 	.on('tick', ticked)
 
+//Zoom and pan
 svg.call(d3.zoom()
 	.extent([[0, 0], [width, height]])
 	.scaleExtent([-8, 8])
@@ -89,6 +96,7 @@ function zoomed() {
     g.attr("transform", d3.event.transform);
 }
 
+//Side menu
 d3.select('#menu')
 	.selectAll('.label')
 	.data([{text: "MAL-Visualizer"}])
@@ -99,6 +107,7 @@ d3.select('#menu')
 	})
 	.attr("class", "font")
 
+//Hide assets button
 var hide = true;
 var hideAssets = d3.select('#menu')
 	.selectAll('.hideButton')
@@ -116,6 +125,7 @@ var hideAssets = d3.select('#menu')
 		hide = !hide
 	})
 
+//Hide category buttons
 if(Object.keys(categories)[0] != "undefined") {
 	var categoryButtons = d3.select('#assetMenu')
 		.selectAll('.catButton')
@@ -125,7 +135,7 @@ if(Object.keys(categories)[0] != "undefined") {
 		.enter()
 		.append("div")
 		.attr("style", function(d) {
-			return "position: relative; width: 100%; background-color: " + colors[categories[d.name].index][1];
+			return "position: relative; width: 100%; background-color: " + colors[categories[d.name].index % colors.length][1];
 		})
 		.append("label")
 		.attr("class", "font")
@@ -154,15 +164,17 @@ if(Object.keys(categories)[0] != "undefined") {
 		})
 }
 
+//Margin
 d3.select('#assetMenu').append("div").attr("style", "width: 100%; height: 5px")
 
+//Hide asset buttons
 var buttons = d3.select('#assetMenu')
 	.selectAll('.button')
 	.data(root.children)
 	.enter()
 	.append("div")
 	.attr("style", function(d) {
-		return "position: relative; width: 100%; background-color: " + colors[categories[d.category].index][1];
+		return "position: relative; width: 100%; background-color: " + colors[categories[d.category].index % colors.length][1];
 	})
 	.append("label")
 	.attr("class", "font")
@@ -187,6 +199,7 @@ var buttons = d3.select('#assetMenu')
 		update()
 	})
 
+//Export button
 var exportButton = d3.select('#exportMenu')
 	.selectAll('.exportButton')
 	.data([{text: "Export"}])
@@ -198,6 +211,7 @@ var exportButton = d3.select('#exportMenu')
 	})
 	.attr("onclick", "export_svg()")
 
+//Visual representations
 graph.association = g.selectAll('.association')
 graph.isa = g.selectAll('.isa')
 graph.asset = g.selectAll('.asset')
@@ -208,6 +222,7 @@ graph.iLink = g.selectAll('.iLink')
 update()
 setChildrenAndParents()
 
+//Helper function to append class to svg/html element
 function appendClass(element, newClass) {
 	var oldClass = element.getAttributeNS(null, 'class')
 	if(oldClass) {
@@ -221,6 +236,7 @@ function appendClass(element, newClass) {
 	}
 }
 
+//Set class attributes to keep track of parents and children
 function setChildrenAndParents() {
 	if(relations) {
 		relations.forEach(function(r) {
@@ -303,6 +319,7 @@ function setChildrenAndParents() {
 	}
 }
 
+//Recursively set child class attributes
 function childrenRecurse(base, attackStep, traversed) {
 	var assetElem = document.getElementById('asset_' + attackStep.entity.name)
 	appendClass(assetElem, "rec_child_to_" + base.entity.name + "_" + base.name)
@@ -368,6 +385,7 @@ function childrenRecurse(base, attackStep, traversed) {
 	}
 }
 
+//Recursively set parent class attributes
 function parentRecurse(base, attackStep, traversed) {
 	var assetElem = document.getElementById('asset_' + attackStep.entity.name)
 	appendClass(assetElem, "rec_parent_to_" + base.entity.name + "_" + base.name)
@@ -446,8 +464,8 @@ function getPathId(d) {
         "_" + d.target.entity.name + "_" + d.target.name
 }
 
+//Reset visibility when assets are shown/hidden
 function update() {
-
     graph.association = graph.association.data(root.associations)
 	graph.association.exit().remove()
 	graph.association = graph.association.enter()
@@ -558,6 +576,7 @@ function update() {
 		})
 }
 
+//Update positions on simulation and drag
 function ticked() {
     graph.association.attr('x1', function(d) {
         return d.source.x
@@ -583,20 +602,6 @@ function ticked() {
 			xm + "," + ym + " " +
 			x2 + "," + y2
 	})
-	/*
-    graph.isa.attr('x1', function(d) {
-        return d.subAsset.x
-    })
-    .attr('y1', function(d) {
-        return d.subAsset.y + (30 * d.subAsset.children.length + 40)/2
-    })
-    .attr('x2', function(d) {
-        return d.superAsset.x
-    })
-    .attr('y2', function(d) {
-        return d.superAsset.y + (30 * d.superAsset.children.length + 40)/2
-	})
-	*/
     
     graph.asset.attr('transform', function(d) {
         return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
@@ -705,6 +710,7 @@ function draggedEnd(d) {
 	d.fixed = false
 }
 
+//Helper function making elements transparent
 function removeMenuAndHide() {
 	document.getElementById('clickMenu').remove()
 	d3.selectAll('.asset').attr("opacity", "1.0")
@@ -747,6 +753,7 @@ function traceAllParents(attackStep) {
 	d3.selectAll('.rec_parent_to_' + attackStep).attr("opacity","1.0")
 }
 
+//Action function attackstep onclick
 function asclick(name) {
 	var old = document.getElementById('clickMenu')
 	if(old != null) {
@@ -779,6 +786,7 @@ function asclick(name) {
 	document.body.appendChild(clickMenu)
 }
 
+//Returning asset box svg element
 function createAssetBox(d) {
     if(!d.children) {
         d.children = []
@@ -788,7 +796,7 @@ function createAssetBox(d) {
 
 	//Boundning rectangle
     var rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-	rect.setAttributeNS(null, 'fill', colors[categories[d.category].index][0])
+	rect.setAttributeNS(null, 'fill', colors[categories[d.category].index % colors.length][0])
     rect.setAttributeNS(null, 'width', boxWidth)
 	rect.setAttributeNS(
 		null, 
@@ -814,13 +822,13 @@ function createAssetBox(d) {
 		classString += " " + d.name + "_" + attackStep.name
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
-		asbox.setAttributeNS(null, 'fill', colors[categories[d.category].index][1])
+		asbox.setAttributeNS(null, 'fill', colors[categories[d.category].index % colors.length][1])
 		asbox.setAttributeNS(null, 'x', sideMargin)
 		asbox.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight)
 		asbox.setAttributeNS(null, 'width', boxWidth-2*sideMargin)
 		asbox.setAttributeNS(null, 'height', attackStepHeight - 5)
 		asbox.setAttributeNS(null, 
-			'oncontextmenu', 'asclick("' + d.name + "_" + attackStep.name + '")'
+			'onclick', 'asclick("' + d.name + "_" + attackStep.name + '")'
 		)
 		asbox.setAttributeNS(null, 'id', d.name+ "_" +attackStep.name)
 		asbox.setAttributeNS(null, 'class', "attackStep ")
@@ -845,7 +853,9 @@ function createAssetBox(d) {
 		text.setAttributeNS(null, 'text-anchor', 'middle')
 		text.setAttributeNS(null, 'font-family', 'Arial')
 		text.setAttributeNS(null, 'fill', 'black')
-		text.setAttributeNS(null, 'class', 'textHover')
+		text.setAttributeNS(null, 
+			'onclick', 'asclick("' + d.name + "_" + attackStep.name + '")'
+		)
 
 		var title = document.createElementNS('http://www.w3.org/2000/svg', 'title')
 		title.innerHTML = attackStep.name
@@ -902,218 +912,19 @@ function createAssetBox(d) {
 	return group
 }
 
-function set_id(root) {
-    i = 0;
-
-    function recurse(node) {
-        if (node.children) node.children.forEach(recurse);
-        if (!node.id) node.id = ++i;
-        node.show = false
-        node.selected = false
-    }
-
-    recurse(root);
-}
-
-function setAssociationId(root) {
-	idMap = {}
-	if (root.children) {
-        root.children.forEach(function(entity, i) {
-			idMap[entity.name] = entity
-		})
-	}
-	if (root.associations) {
-        root.associations.forEach(function(association) {
-			association.source = idMap[association.source]
-			association.target = idMap[association.target]
-		})
-	}
-}
-
-function makeRelations(root) {
-    relations = []
-    if (root.children) {
-        root.children.forEach(function(entity) {
-            if (entity.children) {
-                entity.children.forEach(function(attackStep) {
-                    if (attackStep.target_steps) {
-                        attackStep.target_steps.forEach(function(target, i) {
-                            relation = {
-								source: attackStep, 
-								target: target,
-								associations: attackStep.targets[i].links
-							}
-                            relations.push(relation)
-                        })
-                    }
-                })
-            }
-        })
-	}
-    return relations
-}
-
-function setRelationAssociations(relations, associations) {
-    var relations2 = relations.filter(function(d) {
-		return d.source.entity.name != d.target.entity.name
-	})
-    idMap = {}
-	if (associations) {
-        associations.forEach(function(a) {
-            association_identifier = a.leftName + "_" + a.name + "_" + a.rightName
-			idMap[association_identifier] = a
-		})
-	}
-    if (relations2) {
-        relations2.forEach(function(r) {
-            if(r.associations.length == 0) {
-                r.associations = undefined
-                if(r.source.entity.superAsset) {
-                    var links = []
-                    var asset = r.source.entity
-                    while(asset.name != r.target.entity.name) {
-                        links.push(asset.name)
-                        asset = asset.superAsset
-                    }
-                    links.push(asset.name)
-                    r.link = links
-                }
-            }
-        })
-	}
-    return relations2
-}
-
-function makeIsa(root) {
-	var isa = []
-    if (root.children) {
-        root.children.forEach(function(subAsset) {
-			if(subAsset.superAsset) {
-				isaRelation = {
-					subAsset: subAsset,
-					superAsset: subAsset.superAsset
-				}
-				isa.push(isaRelation)
-			}
-		})
-	}
-	return isa
-}
-
-function makeLinks(relations) {
-    var aLinks = []
-	var iLinks = []
-	
-    if(relations){
-        relations.forEach(function(r) {
-            if(r.associations) {
-				r.associations.forEach(function(a, i) {
-					aLinks.push({
-						path: {
-							source: r.source, 
-							target: r.target
-						}, 
-						association: a
-					})
-				})
-            } else if(r.link) {
-                r.link.forEach(function(l, i) {
-                    if(i+1 < r.link.length) {
-                        iLinks.push({
-                            path: {
-                                source: r.source,
-                                target: r.target
-                            },
-                            link: {
-                                source: r.link[i],
-                                target: r.link[i+1]
-                            }
-                        })
-                    }
-				})
-            }
-        })
-	}
-    return {aLinks: aLinks, iLinks: iLinks}
-}
-
-function initialize(root) {
-    nodes = []
-    nodes.push(root);
-    root.opacity = 0.0
-    if (root.children) {
-        root.children.forEach(function(entity) {
-            entity.hidden = false;
-            nodes.push(entity);
-            if (entity.children) {
-                entity.children.forEach(function(attack_step) {
-                    attack_step.target_steps = []
-					attack_step.source_steps = []
-                    attack_step.entity = entity;
-					attack_step.hidden = false;
-                    nodes.push(attack_step);
-                })
-            } else {
-                entity.children = []
-            }
-        })
-	}
-
-    if (root.children) {
-        root.children.forEach(function(entity) {
-			if (entity.superAsset) {
-				entity.superAsset = root.children.filter(function(asset) {
-					return asset.name == entity.superAsset
-				})[0]
-			} 
-            if (entity.children) {
-                entity.children.forEach(function(attack_step) {
-                    //attack_step.color = color(entity.name)
-                    attack_step.opacity = 1
-                    if (attack_step.targets) {
-                        attack_step.targets.forEach(function(target_ref) {
-                            var target = nodes.filter(function(attack_step) {
-								return attack_step.name == target_ref.name && 
-									attack_step.entity.name == target_ref.entity_name;
-                            })[0]
-                            if (target) {
-                                attack_step.target_steps.push(target)
-                                target.source_steps.push(attack_step)
-							}
-							target_ref.links = []
-							if (target_ref.associations) {
-								target_ref.associations.forEach(function(target_association) {
-									var through = root.associations.filter(function(association) {
-										var association_id = association.leftName + "_" + 
-											association.name + "_" + association.rightName
-										return association_id == target_association
-									})[0]
-									if (through) {
-										target_ref.links.push(through)
-									}
-								})
-							}
-                        })
-                    }
-                    //entity.color = color(entity.name)
-                    entity.opacity = 0.75
-                })
-            }
-        })
-	}
-}
-
+//Export svg
 function export_svg() {
 	var svg = document.getElementById("svg_content")
 
-	//Remove class names
-	svg.childNodes[3].childNodes.forEach(function(e) {
+	//Copy svg node and remove classes before export
+	var svgCopy = svg.cloneNode(true)
+	svgCopy.childNodes[3].childNodes.forEach(function(e) {
 		e.setAttributeNS(null, 'class', '')
 	})
 
     //get svg source.
     var serializer = new XMLSerializer();
-    var source = serializer.serializeToString(svg);
+    var source = serializer.serializeToString(svgCopy);
 
     //add name spaces.
     if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
@@ -1135,6 +946,4 @@ function export_svg() {
 	link.click();
 	document.body.removeChild(link);
 	delete link;
-
-	document.body.innerHTML = "Refresh page";
 }
