@@ -70,8 +70,13 @@ function setRelationAssociations(relations, associations) {
                     while(asset.name != r.target.entity.name) {
                         links.push(asset.name)
                         asset = asset.superAsset
+                        if(!asset || !r.target.entity.name) {
+                            break
+                        }
                     }
-                    links.push(asset.name)
+                    if(asset) {
+                        links.push(asset.name)
+                    }
                     r.link = links
                 }
             }

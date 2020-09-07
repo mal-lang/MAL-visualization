@@ -78,8 +78,8 @@ if(relations) {
 }
 
 var simulation = d3.forceSimulation(root.children)
-	//.force('link', d3.forceLink().links(root.associations).distance(600))
-	.force('center', d3.forceCenter(width/2, height/2))
+	.force('link', d3.forceLink().links(root.associations).strength(0.01))
+	//.force('center', d3.forceCenter(width/2, height/2))
 	.force('collide', d3.forceCollide(200))
 	.force('x', d3.forceX(width/2).strength(0.0125))
     .force('y', d3.forceY(height/2).strength(0.0275))
