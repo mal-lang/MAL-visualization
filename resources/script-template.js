@@ -27,6 +27,9 @@ var attackStepHeight = 30
 var sideMargin = 30
 var arrowMargin = 85
 
+var maxNameLength = prompt("Select asset width (default: 19)", 19)
+boxWidth = boxWidth - (9*(19-maxNameLength))
+
 //Colors
 var colors = [
 //	[Dark shade, light shade]
@@ -845,8 +848,8 @@ function createAssetBox(d) {
 		} else {
 			text.textContent = attackStep.name;
 		}
-		if(text.textContent.length > 19) {
-			text.textContent = text.textContent.substring(0, 16) + "..."
+		if(text.textContent.length > maxNameLength) {
+			text.textContent = text.textContent.substring(0, maxNameLength-3) + "..."
 		}
 		text.setAttributeNS(null, 'x', boxWidth/2)
 		text.setAttributeNS(null, 'y', step * attackStepHeight + labelHeight + 17)
