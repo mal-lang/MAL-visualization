@@ -13,7 +13,9 @@ svg.on("dblclick", function(){
 	d3.selectAll(".inheritance").attr('opacity', 1.0)
 	d3.selectAll(".link").attr('opacity', 1.0)
 	d3.selectAll(".link_path_association").attr('opacity', 1.0)
+	selectedSteps = []
 })
+
 var g = svg.append("g")
 
 var width = svg.attr("width")
@@ -728,29 +730,47 @@ function removeMenuAndHide() {
 	d3.selectAll('.link_path_association').attr("opacity", "0.0")
 }
 
-function traceChildren(attackStep) {
+var selectedSteps = []
+
+function selection(attackStep, action) {
+	selectedSteps.push({
+		step: attackStep, action: action
+	})
 	removeMenuAndHide()
+	if(selectedSteps) {
+		selectedSteps.forEach(function(d) {
+			if(d.action == "traceChildren") {
+				traceChildren(d.step)
+			} else if(d.action == "traceParents") {
+				traceParents(d.step)
+			} else if(d.action == "traceAllChildren") {
+				traceAllChildren(d.step)
+			} else if(d.action == "traceAllParents") {
+				traceAllParents(d.step)
+			}
+		})
+	}
+}
+
+function traceChildren(attackStep) {
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.child_to_' + attackStep).attr("opacity","1.0")
 }
 
 function traceParents(attackStep) {
-	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.parent_to_' + attackStep).attr("opacity","1.0")
 }
 
 function traceAllChildren(attackStep) {
-	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_child_to_' + attackStep).attr("opacity","1.0")
 }
 
 function traceAllParents(attackStep) {
-	removeMenuAndHide()
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_parent_to_' + attackStep).attr("opacity","1.0")
@@ -772,19 +792,19 @@ function asclick(name) {
 	)
 	var p1 = document.createElement('p')
 	p1.innerHTML = "Trace Children"
-	p1.setAttribute('onclick', 'traceChildren("' + name + '")')
+	p1.setAttribute('onclick', 'selection("' + name + '", "traceChildren")')
 	clickMenu.appendChild(p1)
 	var p2 = document.createElement('p')
 	p2.innerHTML = "Trace Parents"
-	p2.setAttribute('onclick', 'traceParents("' + name + '")')
+	p2.setAttribute('onclick', 'selection("' + name + '", "traceParents")')
 	clickMenu.appendChild(p2)
 	var p3 = document.createElement('p')
 	p3.innerHTML = "Trace All Children"
-	p3.setAttribute('onclick', 'traceAllChildren("' + name + '")')
+	p3.setAttribute('onclick', 'selection("' + name + '", "traceAllChildren")')
 	clickMenu.appendChild(p3)
 	var p4 = document.createElement('p')
 	p4.innerHTML = "Trace All Parents"
-	p4.setAttribute('onclick', 'traceAllParents("' + name + '")')
+	p4.setAttribute('onclick', 'selection("' + name + '", "traceAllParents")')
 	clickMenu.appendChild(p4)
 	document.body.appendChild(clickMenu)
 }
