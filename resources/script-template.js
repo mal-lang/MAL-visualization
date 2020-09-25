@@ -601,6 +601,15 @@ function ticked() {
 		var y1 = d.subAsset.y + (30 * d.subAsset.children.length + 40)/2
 		var x2 = d.superAsset.x
 		var y2 = d.superAsset.y + (30 * d.superAsset.children.length + 40)/2
+
+		if(d.subAsset.y < d.superAsset.y) {
+			y1 += (30 * d.subAsset.children.length + 40)/2
+			y2 -= (30 * d.superAsset.children.length + 40)/2
+		} else if(d.subAsset.y > d.superAsset.y) {
+			y1 -= (30 * d.subAsset.children.length + 40)/2
+			y2 += (30 * d.superAsset.children.length + 40)/2
+		}
+
 		var xm = (x2-x1)/2 + x1
 		var ym = (y2-y1)/2 + y1
 		return "" + x1 + "," + y1 + " " + 
