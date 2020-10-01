@@ -66,6 +66,20 @@ var relations = makeRelations(root);
 var relations2 = setRelationAssociations(relations, root.associations);
 var links = makeLinks(relations2)
 
+//Count pairs to calculate bend on asset relations to avoid overlap
+if(root.associations) {
+	var pairs = {}
+	root.associations.forEach(function(a) {
+		if(pairs[a.source.name + "_and_" + a.target.name]) {
+			pairs[a.source.name + "_and_" + a.target.name]++
+			a.bend = pairs[a.source.name + "_and_" + a.target.name]
+		} else {
+			pairs[a.source.name + "_and_" + a.target.name] = 1
+			a.bend = 1
+		}
+	})
+}
+
 //Create map for asset lookup
 var assetMap = {}
 if(root.children) {
@@ -474,9 +488,10 @@ function update() {
     graph.association = graph.association.data(root.associations)
 	graph.association.exit().remove()
 	graph.association = graph.association.enter()
-		.append('line')
+		.append('path')
 		.attr('stroke-width', 3)
 		.style('stroke', 'grey')
+		.attr('fill', 'transparent')
 		.attr('class', 'association')
 		.attr('id', function(d) {
 			return getAssociationId(d)
@@ -583,17 +598,21 @@ function update() {
 
 //Update positions on simulation and drag
 function ticked() {
-    graph.association.attr('x1', function(d) {
-        return d.source.x
-    })
-    .attr('y1', function(d) {
-        return d.source.y + (30 * d.source.children.length + 40)/2
-    })
-    .attr('x2', function(d) {
-        return d.target.x
-    })
-    .attr('y2', function(d) {
-        return d.target.y + (30 * d.target.children.length + 40)/2
+    graph.association.attr('d', function(d) {
+		var x1 = d.source.x
+		var y1 = d.source.y + (30 * d.source.children.length + 40)/2
+		var x2 = d.target.x
+		var y2 = d.target.y + (30 * d.target.children.length + 40)/2
+
+		//Vector ortogonal to (x2, y2) - (x1, y1)
+		var vx = x2 - x1
+		var vy = y2 - y1
+
+		//Calculate position of control point
+		var qx = x1+((x2-x1)*0.5) + ((vy/8) * d.bend)
+		var qy = y1+((y2-y1)*0.5) + ((-vx/8) * d.bend)
+
+		return "M " + x1 + " " + y1 + " Q " + qx + " " + qy + ", " + x2 + " " + y2
 	})
 	
 	graph.isa.attr('points', function(d){
