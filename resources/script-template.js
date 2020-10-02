@@ -489,17 +489,22 @@ function update() {
 	graph.association.exit().remove()
 	graph.association = graph.association.enter()
 		.append('path')
-		.attr('stroke-width', 3)
+		.attr('stroke-width', 4)
 		.style('stroke', 'grey')
-		.attr('fill', 'transparent')
+		.attr('fill', 'none')
 		.attr('class', 'association')
 		.attr('id', function(d) {
 			return getAssociationId(d)
 		})
-		.merge(graph.association)
+	graph.association.append('svg:title').text(function(d) {
+		return d.source.name + " [" + d.leftName + "] <-- " + d.name +
+			" --> [" + d.rightName + "] " + d.target.name
+	})
+
+	graph.association.merge(graph.association)
 		.attr("visibility", function(d) {
 			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
-        })
+		})
 	
     graph.isa = graph.isa.data(isa)
     graph.isa.exit().remove()
