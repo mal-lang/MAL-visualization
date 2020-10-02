@@ -496,16 +496,16 @@ function update() {
 		.attr('id', function(d) {
 			return getAssociationId(d)
 		})
+		.merge(graph.association)
+		.attr("visibility", function(d) {
+			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
+		})
+
 	graph.association.append('svg:title').text(function(d) {
 		return d.source.name + " [" + d.leftName + "] <-- " + d.name +
 			" --> [" + d.rightName + "] " + d.target.name
 	})
 
-	graph.association.merge(graph.association)
-		.attr("visibility", function(d) {
-			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
-		})
-	
     graph.isa = graph.isa.data(isa)
     graph.isa.exit().remove()
     graph.isa = graph.isa.enter()
