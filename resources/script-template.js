@@ -127,7 +127,7 @@ d3.select('#menu')
 	.attr("class", "font")
 
 //Hide assets button
-var hide = true;
+var hide = false;
 var hideAssets = d3.select('#menu')
 	.selectAll('.hideButton')
 	.data([{text: "Hide assets on trace"}])
@@ -138,7 +138,6 @@ var hideAssets = d3.select('#menu')
 		return d.text
 	})
 	.append("input")
-    .attr("checked", true)
     .attr("type", "checkbox")
 	.on("click", function(d) {
 		hide = !hide
