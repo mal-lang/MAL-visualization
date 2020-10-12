@@ -236,6 +236,8 @@ graph.asset = g.selectAll('.asset')
 graph.attackPath = g.selectAll('.attackpath')
 graph.aLink = g.selectAll('.aLink')
 graph.iLink = g.selectAll('.iLink')
+graph.sourceRoleName = g.selectAll('srcRoleName')
+graph.targetRoleName = g.selectAll('tarRoleName')
 
 update()
 setChildrenAndParents()
@@ -598,6 +600,22 @@ function update() {
 		.attr("visibility", function(d) {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
+
+	graph.sourceRoleName = graph.sourceRoleName.data(root.associations)
+	graph.sourceRoleName.exit().remove()
+	graph.sourceRoleName = graph.sourceRoleName.enter()
+		.append('text')
+		.text(function(d) {
+			return d.leftName
+		})
+
+	graph.targetRoleName = graph.targetRoleName.data(root.associations)
+	graph.targetRoleName.exit().remove()
+	graph.targetRoleName = graph.targetRoleName.enter()
+		.append('text')
+		.text(function(d) {
+			return d.rightName
+		})
 }
 
 
@@ -658,33 +676,46 @@ function boxintersection(x1, y1, x2, y2, w1, h1, w2, h2) {
 function ticked() {
     graph.association.attr('d', function(d) {
 		var x1 = d.source.x
-		var y1 = d.source.y + (30 * d.source.children.length + 40)/2
+		var y1 = d.source.y + (attackStepHeight * d.source.children.length + labelHeight + sideMargin/2)/2
 		var x2 = d.target.x
-		var y2 = d.target.y + (30 * d.target.children.length + 40)/2
+		var y2 = d.target.y + (attackStepHeight * d.target.children.length + labelHeight + sideMargin/2)/2
+
+		intersections = boxintersection(
+			x1, y1, x2, y2,
+			boxWidth,
+			attackStepHeight * d.source.children.length + labelHeight + sideMargin/2,
+			boxWidth,
+			attackStepHeight * d.target.children.length + labelHeight + sideMargin/2,
+		)
+
+		x1 = intersections[0][0]
+		y1 = intersections[0][1]
+		x2 = intersections[1][0]
+		y2 = intersections[1][1]
 
 		//Vector ortogonal to (x2, y2) - (x1, y1)
 		var vx = x2 - x1
 		var vy = y2 - y1
 
 		//Calculate position of control point
-		var qx = x1+((x2-x1)*0.5) + ((vy/8) * d.bend)
-		var qy = y1+((y2-y1)*0.5) + ((-vx/8) * d.bend)
+		var qx = x1+((x2-x1)*0.5) + ((vy/4) * d.bend)
+		var qy = y1+((y2-y1)*0.5) + ((-vx/4) * d.bend)
 
 		return "M " + x1 + " " + y1 + " Q " + qx + " " + qy + ", " + x2 + " " + y2
 	})
 	
 	graph.isa.attr('points', function(d){
 		var x1 = d.subAsset.x
-		var y1 = d.subAsset.y + (30 * d.subAsset.children.length + 40)/2
+		var y1 = d.subAsset.y + (attackStepHeight * d.subAsset.children.length + labelHeight + sideMargin/2)/2
 		var x2 = d.superAsset.x
-		var y2 = d.superAsset.y + (30 * d.superAsset.children.length + 40)/2
+		var y2 = d.superAsset.y + (attackStepHeight * d.superAsset.children.length + labelHeight + sideMargin/2)/2
 
 		intersections = boxintersection(
 			x1, y1, x2, y2,
 			boxWidth,
-			(30 * d.subAsset.children.length + 40)/2,
+			attackStepHeight * d.subAsset.children.length + labelHeight + sideMargin/2,
 			boxWidth,
-			(30 * d.superAsset.children.length + 40)/2
+			attackStepHeight * d.superAsset.children.length + labelHeight + sideMargin/2
 		)
 
 		x1 = intersections[0][0]
@@ -786,7 +817,23 @@ function ticked() {
         link.attr('y1', y1)
         link.attr('x2', midPoint.x)
         link.attr('y2', midPoint.y)
-    })
+	})
+	
+	graph.sourceRoleName.each(function(d) {
+		var text = d3.select(this)
+		var elem = document.getElementById(getAssociationId(d))
+		var point = elem.getPointAtLength(elem.getTotalLength() * 0.2)
+		text.attr('x', point.x)
+		text.attr('y', point.y)
+	})
+
+	graph.targetRoleName.each(function(d) {
+		var text = d3.select(this)
+		var elem = document.getElementById(getAssociationId(d))
+		var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
+		text.attr('x', point.x)
+		text.attr('y', point.y)
+	})
 }
 
 function draggedStart(d) {
