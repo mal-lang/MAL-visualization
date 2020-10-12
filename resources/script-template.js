@@ -600,6 +600,60 @@ function update() {
 		})
 }
 
+
+function lineintersection(a, b, c, d, segment) {
+	var p = segment[0]
+	var q = segment[1]
+	var r = segment[2]
+	var s = segment[3]
+	var det, gamma, lambda;
+	det = (c - a) * (s - q) - (r - p) * (d - b);
+	if (det === 0) {
+		return false;
+	} else {
+		lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+		gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+		if((0 < lambda && lambda < 1) && (0 < gamma && gamma < 1)) {
+			var d1x = c - a
+			var d1y = d - b
+			return [a+lambda*d1x, b+lambda*d1y]
+		}
+		return false
+	}
+}
+
+//Coordinates width and height for asset boxes
+function boxintersection(x1, y1, x2, y2, w1, h1, w2, h2) {
+	//intersection a
+	var segments = [
+		[x1-(w1/2), y1+(h1/2) ,x1+(w1/2), y1+(h1/2)],
+		[x1-(w1/2), y1-(h1/2) ,x1+(w1/2), y1-(h1/2)],
+		[x1-(w1/2), y1+(h1/2) ,x1-(w1/2), y1-(h1/2)],
+		[x1+(w1/2), y1+(h1/2) ,x1+(w1/2), y1-(h1/2)]
+	]
+	var ip_a
+	for(var i = 0; i < 4; i++) {
+		ip_a = lineintersection(x1, y1, x2, y2, segments[i])
+		if(ip_a != false) {
+			break
+		}
+	}
+	segments = [
+		[x2-(w2/2), y2+(h2/2) ,x2+(w2/2), y2+(h2/2)],
+		[x2-(w2/2), y2-(h2/2) ,x2+(w2/2), y2-(h2/2)],
+		[x2-(w2/2), y2+(h2/2) ,x2-(w2/2), y2-(h2/2)],
+		[x2+(w2/2), y2+(h2/2) ,x2+(w2/2), y2-(h2/2)]
+	]
+	var ip_b
+	for(var i = 0; i < 4; i++) {
+		ip_b = lineintersection(x1, y1, x2, y2, segments[i])
+		if(ip_b != false) {
+			break
+		}
+	}
+	return [ip_a, ip_b]
+}
+
 //Update positions on simulation and drag
 function ticked() {
     graph.association.attr('d', function(d) {
@@ -625,13 +679,18 @@ function ticked() {
 		var x2 = d.superAsset.x
 		var y2 = d.superAsset.y + (30 * d.superAsset.children.length + 40)/2
 
-		if(d.subAsset.y < d.superAsset.y) {
-			y1 += (30 * d.subAsset.children.length + 40)/2
-			y2 -= (30 * d.superAsset.children.length + 40)/2
-		} else if(d.subAsset.y > d.superAsset.y) {
-			y1 -= (30 * d.subAsset.children.length + 40)/2
-			y2 += (30 * d.superAsset.children.length + 40)/2
-		}
+		intersections = boxintersection(
+			x1, y1, x2, y2,
+			boxWidth,
+			(30 * d.subAsset.children.length + 40)/2,
+			boxWidth,
+			(30 * d.superAsset.children.length + 40)/2
+		)
+
+		x1 = intersections[0][0]
+		y1 = intersections[0][1]
+		x2 = intersections[1][0]
+		y2 = intersections[1][1]
 
 		var xm = (x2-x1)/2 + x1
 		var ym = (y2-y1)/2 + y1
@@ -639,7 +698,7 @@ function ticked() {
 			xm + "," + ym + " " +
 			x2 + "," + y2
 	})
-    
+	
     graph.asset.attr('transform', function(d) {
         return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
     })
