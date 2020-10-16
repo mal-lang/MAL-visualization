@@ -21,7 +21,11 @@ function setAssociationId(root) {
 	if (root.associations) {
         root.associations.forEach(function(association) {
 			association.source = idMap[association.source]
-			association.target = idMap[association.target]
+            association.target = idMap[association.target]
+            association.srx = 0
+            association.sry = 0
+            association.trx = 0
+            association.try = 0
 		})
 	}
 }

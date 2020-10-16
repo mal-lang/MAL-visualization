@@ -241,6 +241,7 @@ graph.targetRoleName = g.selectAll('tarRoleName')
 
 update()
 setChildrenAndParents()
+update()
 
 //Helper function to append class to svg/html element
 function appendClass(element, newClass) {
@@ -586,7 +587,7 @@ function update() {
         .append('path')
         .attr('stroke-width', 1.1)
         .attr('stroke', 'black')
-        .attr('fill', 'transparent')
+        .attr('fill', 'none')
         .attr('marker-end', 'url(#arrow)')
         .attr('class', function(d) {
             return ' notClickable attackPath child_to_' + 
@@ -601,6 +602,9 @@ function update() {
 			return d.source.entity.hidden || d.target.entity.hidden ? "hidden" : "visible"
 		})
 
+	var dragLeftText = d3.drag()
+		.on("drag", moveLeftText)
+
 	graph.sourceRoleName = graph.sourceRoleName.data(root.associations)
 	graph.sourceRoleName.exit().remove()
 	graph.sourceRoleName = graph.sourceRoleName.enter()
@@ -608,6 +612,19 @@ function update() {
 		.text(function(d) {
 			return d.leftName
 		})
+		.merge(graph.sourceRoleName)
+		.attr('class', function(d) {
+			var elem = document.getElementById(getAssociationId(d))
+			return elem.getAttributeNS(null, 'class')
+		})
+		.attr("visibility", function(d) {
+			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
+		})
+
+	graph.sourceRoleName.call(dragLeftText)
+
+	var dragRightText = d3.drag()
+		.on("drag", moveRightText)
 
 	graph.targetRoleName = graph.targetRoleName.data(root.associations)
 	graph.targetRoleName.exit().remove()
@@ -616,8 +633,31 @@ function update() {
 		.text(function(d) {
 			return d.rightName
 		})
+		.merge(graph.targetRoleName)
+		.attr('class', function(d) {
+			var elem = document.getElementById(getAssociationId(d))
+			return elem.getAttributeNS(null, 'class')
+		})
+		.attr("visibility", function(d) {
+			return d.source.hidden || d.target.hidden ? "hidden" : "visible"
+		})
+
+	graph.targetRoleName.call(dragRightText)
 }
 
+function moveLeftText(d) {
+	var elem = document.getElementById(getAssociationId(d))
+	var point = elem.getPointAtLength(elem.getTotalLength() * 0.2)
+	d.srx = d3.event.x - point.x
+	d.sry = d3.event.y - point.y
+}
+
+function moveRightText(d) {
+	var elem = document.getElementById(getAssociationId(d))
+	var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
+	d.trx = d3.event.x - point.x
+	d.try = d3.event.y - point.y
+}
 
 function lineintersection(a, b, c, d, segment) {
 	var p = segment[0]
@@ -823,16 +863,16 @@ function ticked() {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
 		var point = elem.getPointAtLength(elem.getTotalLength() * 0.2)
-		text.attr('x', point.x)
-		text.attr('y', point.y)
+		text.attr('x', point.x + d.srx)
+		text.attr('y', point.y + d.sry)
 	})
 
 	graph.targetRoleName.each(function(d) {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
 		var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
-		text.attr('x', point.x)
-		text.attr('y', point.y)
+		text.attr('x', point.x + d.trx)
+		text.attr('y', point.y + d.try)
 	})
 }
 
@@ -1054,7 +1094,7 @@ function createAssetBox(d) {
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
 				line.setAttributeNS(null, 'stroke-width', 1.1)
 				line.setAttributeNS(null, 'stroke', 'black')
-				line.setAttributeNS(null, 'fill', 'transparent')
+				line.setAttributeNS(null, 'fill', 'none')
 				line.setAttributeNS(null, 'marker-end', 'url(#arrow)')
 				line.setAttributeNS(null, 'id', 
 					'path_' + attackStep.entity.name + "_" + attackStep.name + "_" +
