@@ -738,8 +738,8 @@ function ticked() {
 		var vy = y2 - y1
 
 		//Calculate position of control point
-		var qx = x1+((x2-x1)*0.5) + ((vy/4) * d.bend)
-		var qy = y1+((y2-y1)*0.5) + ((-vx/4) * d.bend)
+		var qx = x1+((x2-x1)*0.5) + ((vy/5) * d.bend)
+		var qy = y1+((y2-y1)*0.5) + ((-vx/5) * d.bend)
 
 		return "M " + x1 + " " + y1 + " Q " + qx + " " + qy + ", " + x2 + " " + y2
 	})
@@ -911,9 +911,11 @@ function removeMenuAndHide() {
 var selectedSteps = []
 
 function selection(attackStep, action) {
-	selectedSteps.push({
-		step: attackStep, action: action
-	})
+	if(attackStep && action) {
+		selectedSteps.push({
+			step: attackStep, action: action
+		})
+	}
 	removeMenuAndHide()
 	if(selectedSteps) {
 		selectedSteps.forEach(function(d) {
@@ -928,6 +930,13 @@ function selection(attackStep, action) {
 			}
 		})
 	}
+}
+
+function removeSelection(attackStep) {
+	if(selectedSteps) {
+		selectedSteps = selectedSteps.filter(function(step) {return step.step != attackStep})
+	}
+	selection(null, null)
 }
 
 function traceChildren(attackStep) {
@@ -984,6 +993,21 @@ function asclick(name) {
 	p4.innerHTML = "Trace All Parents"
 	p4.setAttribute('onclick', 'selection("' + name + '", "traceAllParents")')
 	clickMenu.appendChild(p4)
+	var selected = false
+	if(selectedSteps) {
+		selectedSteps.forEach(function(step) {
+			if(step.step == name) {
+				selected = true
+			}
+		})
+	}
+	if(selected) {
+		var p5 = document.createElement('p')
+		p5.innerHTML = "Remove traces from this attack step"
+		p5.setAttribute('onclick', 'removeSelection("' + name + '")')
+		clickMenu.appendChild(p5)
+	}
+
 	document.body.appendChild(clickMenu)
 }
 
