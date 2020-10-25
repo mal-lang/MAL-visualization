@@ -42,7 +42,7 @@ function makeRelations(root) {
 								source: attackStep, 
 								target: target,
 								associations: attackStep.targets[i].links
-							}
+                            }
                             relations.push(relation)
                         })
                     }
@@ -155,7 +155,7 @@ function initialize(root) {
                     attack_step.target_steps = []
 					attack_step.source_steps = []
                     attack_step.entity = entity;
-					attack_step.hidden = false;
+                    attack_step.hidden = false;
                     nodes.push(attack_step);
                 })
             } else {
@@ -178,7 +178,7 @@ function initialize(root) {
                         attack_step.targets.forEach(function(target_ref) {
                             var target = nodes.filter(function(attack_step) {
 								return attack_step.name == target_ref.name && 
-									attack_step.entity.name == target_ref.entity_name;
+                                    attack_step.entity.name == target_ref.entity_name;
                             })[0]
                             if (target) {
                                 attack_step.target_steps.push(target)

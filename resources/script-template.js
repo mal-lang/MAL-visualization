@@ -29,6 +29,7 @@ var attackStepHeight = 30
 var sideMargin = 30
 var arrowMargin = 85
 
+var hideHidden = confirm("Hide \"@hidden\" attack steps? (OK = yes)")
 var maxNameLength = prompt("Select asset width (default: 19)", 19)
 boxWidth = boxWidth - (9*(19-maxNameLength))
 
@@ -65,6 +66,39 @@ var isa = makeIsa(root);
 var relations = makeRelations(root);
 var relations2 = setRelationAssociations(relations, root.associations);
 var links = makeLinks(relations2)
+
+if(hideHidden) {
+	if(root.children) {
+		root.children.forEach(function(a) {
+			if(a.children) {
+				a.children.forEach(function(as) {
+					if(as.target_steps) {
+						as.target_steps = as.target_steps.filter(function(target) {
+							return !target.hiddenStep
+						})
+						as.source_steps = as.source_steps.filter(function(source) {
+							return !source.hiddenStep
+						})
+					}
+				})
+			}
+			a.children = a.children.filter(function(step) {
+				return !step.hiddenStep
+			})
+		})
+	}
+	if(relations) {
+		relations = relations.filter(function(r) {
+			return !r.source.hiddenStep && !r.target.hiddenStep
+		})
+	}
+	if(relations2) {
+		relations2 = relations2.filter(function(r) {
+			return !r.source.hiddenStep && !r.target.hiddenStep
+		})
+	}
+	links = makeLinks(relations2)
+}
 
 //Count pairs to calculate bend on asset relations to avoid overlap
 if(root.associations) {
@@ -348,7 +382,6 @@ function childrenRecurse(base, attackStep, traversed) {
 		attackStep.target_steps.forEach(function(child) {
 			var childElem = document.getElementById(child.entity.name + "_" + child.name)
 			appendClass(childElem, "rec_child_to_" + base.entity.name + "_" + base.name)
-			
 			var path_id = 'path_' + attackStep.entity.name + "_" + attackStep.name +
 				"_" + child.entity.name + "_" + child.name
 			var pathElem = document.getElementById(path_id)
@@ -605,7 +638,9 @@ function update() {
 	var dragLeftText = d3.drag()
 		.on("drag", moveLeftText)
 
-	graph.sourceRoleName = graph.sourceRoleName.data(root.associations)
+	graph.sourceRoleName = graph.sourceRoleName.data(root.associations.filter(function(d) {
+		return d.source.name != d.target.name
+	}))
 	graph.sourceRoleName.exit().remove()
 	graph.sourceRoleName = graph.sourceRoleName.enter()
 		.append('text')
@@ -626,7 +661,9 @@ function update() {
 	var dragRightText = d3.drag()
 		.on("drag", moveRightText)
 
-	graph.targetRoleName = graph.targetRoleName.data(root.associations)
+	graph.targetRoleName = graph.targetRoleName.data(root.associations.filter(function(d) {
+		return d.source.name != d.target.name
+	}))
 	graph.targetRoleName.exit().remove()
 	graph.targetRoleName = graph.targetRoleName.enter()
 		.append('text')
@@ -733,6 +770,10 @@ function ticked() {
 		x2 = intersections[1][0]
 		y2 = intersections[1][1]
 
+		if(x1 == null || y1 == null || x2 == null || y2 == null) {
+			return
+		}
+
 		//Vector ortogonal to (x2, y2) - (x1, y1)
 		var vx = x2 - x1
 		var vy = y2 - y1
@@ -740,7 +781,6 @@ function ticked() {
 		//Calculate position of control point
 		var qx = x1+((x2-x1)*0.5) + ((vy/5) * d.bend)
 		var qy = y1+((y2-y1)*0.5) + ((-vx/5) * d.bend)
-
 		return "M " + x1 + " " + y1 + " Q " + qx + " " + qy + ", " + x2 + " " + y2
 	})
 	
@@ -762,6 +802,10 @@ function ticked() {
 		y1 = intersections[0][1]
 		x2 = intersections[1][0]
 		y2 = intersections[1][1]
+		
+		if(x1 == null || y1 == null || x2 == null || y2 == null) {
+			return
+		}
 
 		var xm = (x2-x1)/2 + x1
 		var ym = (y2-y1)/2 + y1
@@ -769,7 +813,7 @@ function ticked() {
 			xm + "," + ym + " " +
 			x2 + "," + y2
 	})
-	
+
     graph.asset.attr('transform', function(d) {
         return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
     })
@@ -813,28 +857,31 @@ function ticked() {
 		return "M " + x1 + " " + y1 + 
 			" C " + c1 + " " + y1 + " " + 
 			c2 + " " + y2 + " " + x2 + " " + y2
-    })
-
+	})
+	
     graph.aLink.each(function(d) {
-        var link = d3.select(this)
+		var link = d3.select(this)
         var path = document.getElementById("path_" + 
             d.path.source.entity.name + "_" + 
             d.path.source.name + "_" +
             d.path.target.entity.name + "_" + 
             d.path.target.name
-        )
+		)
         var mid = path.getTotalLength() * 0.6
         var midPoint = path.getPointAtLength(mid)
         var x1 = midPoint.x
         var y1 = midPoint.y
         var association_id = getAssociationId(d.association)
-        var association = document.getElementById(association_id)
+		var association = document.getElementById(association_id)
+		if(association.getAttributeNS(null, "d") == null) {
+			return
+		}
         mid = association.getTotalLength() * 0.4
         midPoint = association.getPointAtLength(mid)
         link.attr('x1', x1)
         link.attr('y1', y1)
         link.attr('x2', midPoint.x)
-        link.attr('y2', midPoint.y)
+		link.attr('y2', midPoint.y)
     })
 
     graph.iLink.each(function(d) {
@@ -850,18 +897,24 @@ function ticked() {
         var x1 = midPoint.x
         var y1 = midPoint.y
         var inheritance_id = "inheritance_" + d.link.source + "_" + d.link.target
-        var inheritance = document.getElementById(inheritance_id)
+		var inheritance = document.getElementById(inheritance_id)
+		if(inheritance.getAttributeNS(null, "points") == null) {
+			return
+		}
         mid = inheritance.getTotalLength() * 0.4
         midPoint = inheritance.getPointAtLength(mid)
         link.attr('x1', x1)
         link.attr('y1', y1)
         link.attr('x2', midPoint.x)
-        link.attr('y2', midPoint.y)
+		link.attr('y2', midPoint.y)
 	})
 	
 	graph.sourceRoleName.each(function(d) {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
+		if(elem.getAttributeNS(null, "d") == null) {
+			return
+		}
 		var point = elem.getPointAtLength(elem.getTotalLength() * 0.2)
 		text.attr('x', point.x + d.srx)
 		text.attr('y', point.y + d.sry)
@@ -870,6 +923,9 @@ function ticked() {
 	graph.targetRoleName.each(function(d) {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
+		if(elem.getAttributeNS(null, "d") == null) {
+			return
+		}
 		var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
 		text.attr('x', point.x + d.trx)
 		text.attr('y', point.y + d.try)
@@ -1092,9 +1148,9 @@ function createAssetBox(d) {
     
 	//Draw internal Attack paths
 	for(step in d.children) {
-        var attackStep = d.children[step]
-		for(child in attackStep.targets) {
-            relation = attackStep.target_steps[child]
+		var attackStep = d.children[step]
+		for(child in attackStep.target_steps) {
+			relation = attackStep.target_steps[child]
 			if(attackStep.entity.name == relation.entity.name) {
 				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)

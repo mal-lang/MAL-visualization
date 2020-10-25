@@ -37,6 +37,11 @@ public class Generator {
         for (var attackStep : asset.getAttackSteps().values()) {
           var jsonAttackStep = new JSONObject();
           jsonAttackStep.put("name", attackStep.getName());
+          if(attackStep.hasTag("hidden")) {
+            jsonAttackStep.put("hiddenStep", true);
+          } else {
+            jsonAttackStep.put("hiddenStep", false);
+          }
           switch (attackStep.getType()) {
             case ANY:
               jsonAttackStep.put("type", "or");
