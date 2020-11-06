@@ -16,7 +16,7 @@ svg.on("dblclick", function(){
 	selectedSteps = []
 })
 
-var g = svg.append("g")
+var g = svg.append("g").attr('id', 'main_g')
 
 var width = svg.attr("width")
 var height = svg.attr("height");
@@ -43,7 +43,7 @@ var colors = [
 	["#DD5E03", "#FEAC72"]
 ]
 
-var root = {{JSON}}
+var root = {"associations":[{"rightName":"executor","name":"Execution","leftName":"executees","source":"Machine","target":"Software"},{"rightName":"parties","name":"Communication","leftName":"networks","source":"Machine","target":"Network"},{"rightName":"stores","name":"Storage","leftName":"storedCreds","source":"Machine","target":"Credentials"},{"rightName":"authenticates","name":"Access","leftName":"authCreds","source":"Machine","target":"Credentials"}],"children":[{"children":[{"name":"connect","type":"or","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Machine","name":"authCompromise"}]},{"name":"authenticate","type":"or","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Machine","name":"authCompromise"}]},{"name":"authCompromise","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Machine","name":"compromise"}]},{"name":"compromise","type":"or","hiddenStep":false,"targets":[{"associations":["executees_Execution_executor"],"size":4000,"entity_name":"Machine","name":"connect"},{"associations":["storedCreds_Storage_stores"],"size":4000,"entity_name":"Credentials","name":"access"},{"associations":["networks_Communication_parties"],"size":4000,"entity_name":"Network","name":"communicate"}]}],"name":"Machine","category":"System"},{"superAsset":"Machine","name":"Hardware","category":"System"},{"superAsset":"Machine","children":[{"name":"compromise","type":"or","hiddenStep":false,"targets":[{"associations":["executees_Execution_executor"],"size":4000,"entity_name":"Machine","name":"connect"}]}],"name":"Software","category":"System"},{"superAsset":"Software","children":[{"name":"connect","type":"or","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"attemptZeroDayExploit"},{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"attemptExploitKnownVulnerability"}]},{"name":"attemptZeroDayExploit","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"executeZeroDayExploit"},{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"bypassAVwithZeroDayExploit"}]},{"name":"attemptExploitKnownVulnerability","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"executeKnownExploit"},{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"bypassAVwithKnownVulnExploit"}]},{"name":"bypassAVwithZeroDayExploit","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"enableExploitZeroDayVulnerability"}]},{"name":"bypassAVwithKnownVulnExploit","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"enableExploitKnownVulnerability"}]},{"name":"enableExploitZeroDayVulnerability","type":"or","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"executeZeroDayExploit"}]},{"name":"enableExploitKnownVulnerability","type":"or","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"executeKnownExploit"}]},{"name":"executeZeroDayExploit","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Software","name":"compromise"}]},{"name":"executeKnownExploit","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Software","name":"compromise"}]},{"name":"patched","type":"defense","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"attemptExploitKnownVulnerability"}]},{"name":"antiVirusProtected","type":"defense","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"bypassAVwithKnownVulnExploit"},{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"bypassAVwithZeroDayExploit"}]},{"name":"notAntiVirusProtected","type":"defense","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"enableExploitKnownVulnerability"},{"associations":[],"size":4000,"entity_name":"OperatingSystem","name":"enableExploitZeroDayVulnerability"}]}],"name":"OperatingSystem","category":"System"},{"superAsset":"Software","name":"AntiVirus","category":"System"},{"children":[{"name":"communicate","type":"or","hiddenStep":false,"targets":[{"associations":["networks_Communication_parties"],"size":4000,"entity_name":"Machine","name":"connect"}]}],"name":"Network","category":"System"},{"children":[{"name":"access","type":"or","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Credentials","name":"compromiseUnencrypted"},{"associations":[],"size":4000,"entity_name":"Credentials","name":"crack"}]},{"name":"compromiseUnencrypted","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Credentials","name":"compromise"}]},{"name":"crack","type":"and","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Credentials","name":"compromise"}]},{"name":"compromise","type":"or","hiddenStep":false,"targets":[{"associations":["authCreds_Access_authenticates"],"size":4000,"entity_name":"Machine","name":"authenticate"}]},{"name":"encrypted","type":"defense","hiddenStep":false,"targets":[{"associations":[],"size":4000,"entity_name":"Credentials","name":"compromiseUnencrypted"}]}],"name":"Credentials","category":"System"}]}
 
 //Set category indices
 var categories = {}
@@ -65,7 +65,7 @@ setAssociationId(root);
 var isa = makeIsa(root);
 var relations = makeRelations(root);
 var relations2 = setRelationAssociations(relations, root.associations);
-var links = makeLinks(relations2)
+var links = makeLinks(relations2);
 
 if(hideHidden) {
 	if(root.children) {
@@ -263,6 +263,24 @@ var exportButton = d3.select('#exportMenu')
 	})
 	.attr("onclick", "export_svg()")
 
+var controlPointsHidden = true
+var hideControlPoints = d3.select('#bottomMenu')
+	.selectAll('.hideControlPointsButton')
+	.data([{text: "Hide association control points"}])
+	.enter()
+	.append("label")
+	.attr("class", "font")
+	.text(function(d) {
+		return d.text
+	})
+	.append("input")
+    .attr("checked", true)
+	.attr("type", "checkbox")
+	.on("click", function(d) {
+		controlPointsHidden = !controlPointsHidden
+		update()
+	})
+
 //Visual representations
 graph.association = g.selectAll('.association')
 graph.isa = g.selectAll('.isa')
@@ -270,9 +288,11 @@ graph.asset = g.selectAll('.asset')
 graph.attackPath = g.selectAll('.attackpath')
 graph.aLink = g.selectAll('.aLink')
 graph.iLink = g.selectAll('.iLink')
-graph.sourceRoleName = g.selectAll('srcRoleName')
-graph.targetRoleName = g.selectAll('tarRoleName')
+graph.sourceRoleName = g.selectAll('.srcRoleName')
+graph.targetRoleName = g.selectAll('.tarRoleName')
+graph.controlPoint = g.selectAll('.controlPoint')
 
+setAssociationControlPoint(root.associations);
 update()
 setChildrenAndParents()
 update()
@@ -680,6 +700,21 @@ function update() {
 		})
 
 	graph.targetRoleName.call(dragRightText)
+
+	graph.controlPoint = graph.controlPoint.data(root.associations)
+	graph.controlPoint.exit().remove()
+	graph.controlPoint = graph.controlPoint.enter()
+		.append('circle')
+		.attr('r', 5)
+		.attr('fill', 'blue')
+		.merge(graph.controlPoint)
+		.attr('visibility', function() {
+			return controlPointsHidden ? "hidden" : "visible"
+		})
+
+	var dragControlPoint = d3.drag().on("drag", moveControlPoint)
+	graph.controlPoint.call(dragControlPoint)
+
 }
 
 function moveLeftText(d) {
@@ -694,6 +729,11 @@ function moveRightText(d) {
 	var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
 	d.trx = d3.event.x - point.x
 	d.try = d3.event.y - point.y
+}
+
+function moveControlPoint(d) {
+	d.control_x = d3.event.x
+	d.control_y = d3.event.y
 }
 
 function lineintersection(a, b, c, d, segment) {
@@ -775,12 +815,12 @@ function ticked() {
 		}
 
 		//Vector ortogonal to (x2, y2) - (x1, y1)
-		var vx = x2 - x1
-		var vy = y2 - y1
-
+		//var vx = x2 - x1
+		//var vy = y2 - y1
+		
 		//Calculate position of control point
-		var qx = x1+((x2-x1)*0.5) + ((vy/5) * d.bend)
-		var qy = y1+((y2-y1)*0.5) + ((-vx/5) * d.bend)
+		var qx = x1+((x2-x1)*0.5) + d.control_x
+		var qy = y1+((y2-y1)*0.5) + d.control_y
 		return "M " + x1 + " " + y1 + " Q " + qx + " " + qy + ", " + x2 + " " + y2
 	})
 	
@@ -929,6 +969,36 @@ function ticked() {
 		var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
 		text.attr('x', point.x + d.trx)
 		text.attr('y', point.y + d.try)
+	})
+	graph.controlPoint.each(function(d) {
+		var point = d3.select(this)
+		var x1 = d.source.x
+		var y1 = d.source.y + (attackStepHeight * d.source.children.length + labelHeight + sideMargin/2)/2
+		var x2 = d.target.x
+		var y2 = d.target.y + (attackStepHeight * d.target.children.length + labelHeight + sideMargin/2)/2
+
+		intersections = boxintersection(
+			x1, y1, x2, y2,
+			boxWidth,
+			attackStepHeight * d.source.children.length + labelHeight + sideMargin/2,
+			boxWidth,
+			attackStepHeight * d.target.children.length + labelHeight + sideMargin/2,
+		)
+
+		x1 = intersections[0][0]
+		y1 = intersections[0][1]
+		x2 = intersections[1][0]
+		y2 = intersections[1][1]
+
+		if(x1 == null || y1 == null || x2 == null || y2 == null) {
+			return
+		}
+
+		var qx = x1+((x2-x1)*0.5) + d.control_x
+		var qy = y1+((y2-y1)*0.5) + d.control_y
+
+		point.attr('cx', qx)
+		point.attr('cy', qy)
 	})
 }
 

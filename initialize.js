@@ -30,6 +30,21 @@ function setAssociationId(root) {
 	}
 }
 
+function setAssociationControlPoint(associations) {
+    if(associations) {
+        associations.forEach(function(a) {
+            var x1 = a.source.x
+            var y1 = a.source.y
+            var x2 = a.target.x
+            var y2 = a.target.y
+            var vy = (x2 - x1) * 3
+            var vx = (y2 - y1) * 3
+            a.control_x = (vx) * a.bend
+            a.control_y = (vy) * a.bend
+        })
+    }
+}
+
 function makeRelations(root) {
     relations = []
     if (root.children) {
