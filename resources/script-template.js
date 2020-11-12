@@ -886,7 +886,15 @@ function ticked() {
 		//Calculate position of control point
 		var qx = x1+((x2-x1)*0.5) + d.control_x
 		var qy = y1+((y2-y1)*0.5) + d.control_y
-		return "M " + x1 + " " + y1 + " Q " + qx + " " + qy + ", " + x2 + " " + y2
+
+		var c1x = qx - (x2-x1)*0.2
+		var c1y = qy - (y2-y1)*0.2
+
+		var c2x = qx + (x2-x1)*0.2
+		var c2y = qy + (y2-y1)*0.2
+
+		return "M " + x1 + " " + y1 + " Q " + c1x + " " + c1y + ", " + qx + " " + qy +
+			" M " + qx + " " + qy + " Q " + c2x + " " + c2y + ", " + x2 + " " + y2
 	})
 	
 	graph.isa.attr('points', function(d){
