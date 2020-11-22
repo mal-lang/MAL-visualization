@@ -45,6 +45,15 @@ function setAssociationControlPoint(associations) {
     }
 }
 
+function setPathControlPoint(relations2) {
+    if(relations2) {
+        relations2.forEach(function(r) {
+            r.control_x = 0
+            r.control_y = 0
+        })
+    }
+}
+
 function makeRelations(root) {
     relations = []
     if (root.children) {

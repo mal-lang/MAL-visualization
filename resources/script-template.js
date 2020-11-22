@@ -266,7 +266,7 @@ var exportButton = d3.select('#exportMenu')
 var controlPointsHidden = true
 var hideControlPoints = d3.select('#bottomMenu')
 	.selectAll('.hideControlPointsButton')
-	.data([{text: "Hide association control points"}])
+	.data([{text: "Hide control points"}])
 	.enter()
 	.append("label")
 	.attr("class", "font")
@@ -342,8 +342,10 @@ graph.iLink = g.selectAll('.iLink')
 graph.sourceRoleName = g.selectAll('.srcRoleName')
 graph.targetRoleName = g.selectAll('.tarRoleName')
 graph.controlPoint = g.selectAll('.controlPoint')
+graph.pathControlPoint = g.selectAll('.pathControlPoint')
 
 setAssociationControlPoint(root.associations);
+setPathControlPoint(relations2);
 update()
 setChildrenAndParents()
 update()
@@ -780,6 +782,19 @@ function update() {
 	var dragControlPoint = d3.drag().on("drag", moveControlPoint)
 	graph.controlPoint.call(dragControlPoint)
 
+	graph.pathControlPoint = graph.pathControlPoint.data(relations2)
+	graph.pathControlPoint.exit().remove()
+	graph.pathControlPoint = graph.pathControlPoint.enter()
+		.append('circle')
+		.attr('r', 5)
+		.attr('fill', 'red')
+		.merge(graph.pathControlPoint)
+		.attr('visibility', function() {
+			return controlPointsHidden ? "hidden" : "visible"
+		})
+
+	var dragPathControlPoint = d3.drag().on("drag", movePathControlPoint)
+	graph.pathControlPoint.call(dragPathControlPoint)
 }
 
 function moveLeftText(d) {
@@ -787,6 +802,7 @@ function moveLeftText(d) {
 	var point = elem.getPointAtLength(elem.getTotalLength() * 0.2)
 	d.srx = d3.event.x - point.x
 	d.sry = d3.event.y - point.y
+	ticked()
 }
 
 function moveRightText(d) {
@@ -794,11 +810,35 @@ function moveRightText(d) {
 	var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
 	d.trx = d3.event.x - point.x
 	d.try = d3.event.y - point.y
+	ticked()
 }
 
 function moveControlPoint(d) {
-	d.control_x = d3.event.x
-	d.control_y = d3.event.y
+	var x1 = d.source.x
+	var y1 = d.source.y + (attackStepHeight * d.source.children.length + labelHeight + sideMargin/2)/2
+	var x2 = d.target.x
+	var y2 = d.target.y + (attackStepHeight * d.target.children.length + labelHeight + sideMargin/2)/2
+
+	var qx = x1+((x2-x1)*0.5)
+	var qy = y1+((y2-y1)*0.5)
+
+	d.control_x = d3.event.x - qx
+	d.control_y = d3.event.y - qy
+	ticked()
+}
+
+function movePathControlPoint(d) {
+	var x1 = d.source.entity.x
+	var y1 = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+	var x2 = d.target.entity.x
+	var y2 = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+
+	var qx = x1+((x2-x1)*0.5)
+	var qy = y1+((y2-y1)*0.5)
+
+	d.control_x = d3.event.x - qx
+	d.control_y = d3.event.y - qy
+	ticked()
 }
 
 function lineintersection(a, b, c, d, segment) {
@@ -879,11 +919,6 @@ function ticked() {
 			return
 		}
 
-		//Vector ortogonal to (x2, y2) - (x1, y1)
-		//var vx = x2 - x1
-		//var vy = y2 - y1
-		
-		//Calculate position of control point
 		var qx = x1+((x2-x1)*0.5) + d.control_x
 		var qy = y1+((y2-y1)*0.5) + d.control_y
 
@@ -967,9 +1002,27 @@ function ticked() {
 		var y2 = d.target.entity.y + 
 				(d.target.index * attackStepHeight) + 12 + labelHeight
 
-		return "M " + x1 + " " + y1 + 
-			" C " + c1 + " " + y1 + " " + 
-			c2 + " " + y2 + " " + x2 + " " + y2
+		/*
+		var qx = d.source.entity.x + d.control_x
+		var qy = d.source.entity.y + d.control_y
+
+		return "M " + x1 + " " + (y1+5) + 
+			" C " + c1 + " " + (y1+5) + " " + 
+			c2 + " " + (y2-5) + " " + x2 + " " + (y2-5)
+		*/
+
+		var x1c = d.source.entity.x
+		var y1c = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+		var x2c = d.target.entity.x
+		var y2c = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+
+		var qx = x1c+((x2c-x1c)*0.5) + d.control_x
+		var qy = y1c+((y2c-y1c)*0.5) + d.control_y
+
+		//return "M " + x1 + " " + (y1+5) + " Q " + c1 + " " + (y1+5) + ", " + qx + " " + qy + " T " + x2 + " " + (y2-5)
+		return "M " + x1 + " " + (y1+5) + " C " + c1 + " " + (y1+5) + ", " + qx + " " + (y1+5)  + ", " + qx + " " + qy +
+			" M " + qx + " " + qy + " C " + qx + " " + (y2-5) + ", " + c2 + " " + (y2-5) + ", " + x2 + " " + (y2-5)
+
 	})
 	
     graph.aLink.each(function(d) {
@@ -992,7 +1045,7 @@ function ticked() {
         mid = association.getTotalLength() * 0.4
         midPoint = association.getPointAtLength(mid)
         link.attr('x1', x1)
-        link.attr('y1', y1)
+		link.attr('y1', y1)
         link.attr('x2', midPoint.x)
 		link.attr('y2', midPoint.y)
     })
@@ -1043,6 +1096,7 @@ function ticked() {
 		text.attr('x', point.x + d.trx)
 		text.attr('y', point.y + d.try)
 	})
+
 	graph.controlPoint.each(function(d) {
 		var point = d3.select(this)
 		var x1 = d.source.x
@@ -1050,22 +1104,20 @@ function ticked() {
 		var x2 = d.target.x
 		var y2 = d.target.y + (attackStepHeight * d.target.children.length + labelHeight + sideMargin/2)/2
 
-		intersections = boxintersection(
-			x1, y1, x2, y2,
-			boxWidth,
-			attackStepHeight * d.source.children.length + labelHeight + sideMargin/2,
-			boxWidth,
-			attackStepHeight * d.target.children.length + labelHeight + sideMargin/2,
-		)
+		var qx = x1+((x2-x1)*0.5) + d.control_x
+		var qy = y1+((y2-y1)*0.5) + d.control_y
 
-		x1 = intersections[0][0]
-		y1 = intersections[0][1]
-		x2 = intersections[1][0]
-		y2 = intersections[1][1]
-
-		if(x1 == null || y1 == null || x2 == null || y2 == null) {
-			return
-		}
+		point.attr('cx', qx)
+		point.attr('cy', qy)
+	})
+	
+	graph.pathControlPoint.each(function(d) {
+		var point = d3.select(this)
+		
+		var x1 = d.source.entity.x
+		var y1 = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+		var x2 = d.target.entity.x
+		var y2 = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
 		var qx = x1+((x2-x1)*0.5) + d.control_x
 		var qy = y1+((y2-y1)*0.5) + d.control_y
@@ -1298,21 +1350,22 @@ function createAssetBox(d) {
 				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
 				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)
 				var yt = (relation.index * attackStepHeight + labelHeight + 12)
-                var bend = 4
+				var bend = 4
+				var rnd = (Math.random()-0.5)*15;
 				if(attackStep.index < relation.index) {
-					var start = "M " + (boxWidth-arrowMargin) + " " + ys + " "
+					var start = "M " + (boxWidth-arrowMargin) + " " + (ys+5) + " "
 					var c1 = "" + ((boxWidth-arrowMargin) + 20 + 
-							(bend*Math.abs(attackStep.index - relation.index))) + " " + ys
+							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (ys+5)
 					var c2 = "" + ((boxWidth-arrowMargin) + 20 + 
-							(bend*Math.abs(attackStep.index - relation.index))) + " " + yt
-					var end = (boxWidth - arrowMargin + 5) + " " + yt
+							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (yt-5)
+					var end = (boxWidth - arrowMargin + 5) + " " + (yt-5)
 				} else {
-					var start = "M " + arrowMargin + " " + ys + " "
+					var start = "M " + arrowMargin + " " + (ys-5) + " "
 					var c1 = "" + ((arrowMargin) - 20 - 
-							(bend*Math.abs(attackStep.index - relation.index))) + " " + ys
+							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (ys-5)
 					var c2 = "" + ((arrowMargin) - 20 - 
-							(bend*Math.abs(attackStep.index - relation.index))) + " " + yt
-                    var end = (arrowMargin - 5) + " " + yt
+							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (yt+5)
+                    var end = (arrowMargin - 5) + " " + (yt+5)
 				}
 				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
 				line.setAttributeNS(null, 'stroke-width', 1.1)
