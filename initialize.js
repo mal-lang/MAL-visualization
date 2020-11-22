@@ -138,10 +138,7 @@ function makeLinks(relations) {
             if(r.associations) {
 				r.associations.forEach(function(a, i) {
 					aLinks.push({
-						path: {
-							source: r.source, 
-							target: r.target
-						}, 
+						path: r, 
 						association: a
 					})
 				})
@@ -149,10 +146,7 @@ function makeLinks(relations) {
                 r.link.forEach(function(l, i) {
                     if(i+1 < r.link.length) {
                         iLinks.push({
-                            path: {
-                                source: r.source,
-                                target: r.target
-                            },
+                            path: r,
                             link: {
                                 source: r.link[i],
                                 target: r.link[i+1]

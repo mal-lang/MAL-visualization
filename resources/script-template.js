@@ -910,12 +910,12 @@ function ticked() {
 			attackStepHeight * d.target.children.length + labelHeight + sideMargin/2,
 		)
 
-		x1 = intersections[0][0]
-		y1 = intersections[0][1]
-		x2 = intersections[1][0]
-		y2 = intersections[1][1]
+		x1n = intersections[0][0]
+		y1n = intersections[0][1]
+		x2n = intersections[1][0]
+		y2n = intersections[1][1]
 
-		if(x1 == null || y1 == null || x2 == null || y2 == null) {
+		if(x1n == null || y1n == null || x2n == null || y2n == null) {
 			return
 		}
 
@@ -928,8 +928,8 @@ function ticked() {
 		var c2x = qx + (x2-x1)*0.2
 		var c2y = qy + (y2-y1)*0.2
 
-		return "M " + x1 + " " + y1 + " Q " + c1x + " " + c1y + ", " + qx + " " + qy +
-			" M " + qx + " " + qy + " Q " + c2x + " " + c2y + ", " + x2 + " " + y2
+		return "M " + x1n + " " + y1n + " Q " + c1x + " " + c1y + ", " + qx + " " + qy +
+			" M " + qx + " " + qy + " Q " + c2x + " " + c2y + ", " + x2n + " " + y2n
 	})
 	
 	graph.isa.attr('points', function(d){
@@ -1018,7 +1018,7 @@ function ticked() {
 
 		var qx = x1c+((x2c-x1c)*0.5) + d.control_x
 		var qy = y1c+((y2c-y1c)*0.5) + d.control_y
-
+		
 		//return "M " + x1 + " " + (y1+5) + " Q " + c1 + " " + (y1+5) + ", " + qx + " " + qy + " T " + x2 + " " + (y2-5)
 		return "M " + x1 + " " + (y1+5) + " C " + c1 + " " + (y1+5) + ", " + qx + " " + (y1+5)  + ", " + qx + " " + qy +
 			" M " + qx + " " + qy + " C " + qx + " " + (y2-5) + ", " + c2 + " " + (y2-5) + ", " + x2 + " " + (y2-5)
@@ -1027,41 +1027,36 @@ function ticked() {
 	
     graph.aLink.each(function(d) {
 		var link = d3.select(this)
-        var path = document.getElementById("path_" + 
-            d.path.source.entity.name + "_" + 
-            d.path.source.name + "_" +
-            d.path.target.entity.name + "_" + 
-            d.path.target.name
-		)
-        var mid = path.getTotalLength() * 0.6
-        var midPoint = path.getPointAtLength(mid)
-        var x1 = midPoint.x
-        var y1 = midPoint.y
-        var association_id = getAssociationId(d.association)
-		var association = document.getElementById(association_id)
-		if(association.getAttributeNS(null, "d") == null) {
-			return
-		}
-        mid = association.getTotalLength() * 0.4
-        midPoint = association.getPointAtLength(mid)
-        link.attr('x1', x1)
-		link.attr('y1', y1)
-        link.attr('x2', midPoint.x)
-		link.attr('y2', midPoint.y)
+
+		var x1c = d.path.source.entity.x
+		var y1c = d.path.source.entity.y + (d.path.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+		var x2c = d.path.target.entity.x
+		var y2c = d.path.target.entity.y + (d.path.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+
+		var qx = x1c+((x2c-x1c)*0.5) + d.path.control_x
+		var qy = y1c+((y2c-y1c)*0.5) + d.path.control_y
+        link.attr('x1', qx)
+		link.attr('y1', qy)
+
+		var x1 = d.association.source.x
+		var y1 = d.association.source.y + (attackStepHeight * d.association.source.children.length + labelHeight + sideMargin/2)/2
+		var x2 = d.association.target.x
+		var y2 = d.association.target.y + (attackStepHeight * d.association.target.children.length + labelHeight + sideMargin/2)/2
+		link.attr('x2', x1+((x2-x1)*0.5) + d.association.control_x)
+		link.attr('y2', y1+((y2-y1)*0.5) + d.association.control_y)
     })
 
     graph.iLink.each(function(d) {
-        var link = d3.select(this)
-        var path = document.getElementById("path_" + 
-            d.path.source.entity.name + "_" + 
-            d.path.source.name + "_" +
-            d.path.target.entity.name + "_" + 
-            d.path.target.name
-        )
-        var mid = path.getTotalLength() * 0.6
-        var midPoint = path.getPointAtLength(mid)
-        var x1 = midPoint.x
-        var y1 = midPoint.y
+		var link = d3.select(this)
+		
+		var x1c = d.path.source.entity.x
+		var y1c = d.path.source.entity.y + (d.path.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+		var x2c = d.path.target.entity.x
+		var y2c = d.path.target.entity.y + (d.path.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+
+		var x1 = x1c+((x2c-x1c)*0.5) + d.path.control_x
+		var y1 = y1c+((y2c-y1c)*0.5) + d.path.control_y
+
         var inheritance_id = "inheritance_" + d.link.source + "_" + d.link.target
 		var inheritance = document.getElementById(inheritance_id)
 		if(inheritance.getAttributeNS(null, "points") == null) {
@@ -1099,6 +1094,7 @@ function ticked() {
 
 	graph.controlPoint.each(function(d) {
 		var point = d3.select(this)
+
 		var x1 = d.source.x
 		var y1 = d.source.y + (attackStepHeight * d.source.children.length + labelHeight + sideMargin/2)/2
 		var x2 = d.target.x
