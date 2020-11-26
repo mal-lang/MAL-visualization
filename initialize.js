@@ -113,6 +113,23 @@ function setRelationAssociations(relations, associations) {
     return relations2
 }
 
+function setInternalRelationsControlPoints(internalRelations) {
+    if(internalRelations) {
+        internalRelations.forEach(function(ir) {
+            var rnd = 0
+            var bend = 4
+            if(ir.source.index < ir.target.index) {
+                ir.control_x = ((boxWidth/2-arrowMargin) + 20 + 
+                    (bend*Math.abs(ir.source.index - ir.target.index)) + rnd)
+            } else {
+                ir.control_x = (-boxWidth/2 + (arrowMargin) - 20 - 
+					(bend*Math.abs(ir.source.index - ir.target.index)) + rnd)
+            }
+            ir.control_y = 0
+        })
+    }
+}
+
 function makeIsa(root) {
 	var isa = []
     if (root.children) {
@@ -190,7 +207,8 @@ function initialize(root) {
 				})[0]
 			} 
             if (entity.children) {
-                entity.children.forEach(function(attack_step) {
+                entity.children.forEach(function(attack_step, i) {
+                    attack_step.index = i
                     attack_step.opacity = 1
                     if (attack_step.targets) {
                         attack_step.targets.forEach(function(target_ref) {

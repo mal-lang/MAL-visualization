@@ -68,6 +68,7 @@ var relations2 = setRelationAssociations(relations, root.associations);
 var internalRelations = relations.filter(function(r) {
 	return r.source.entity.name == r.target.entity.name
 })
+setInternalRelationsControlPoints(internalRelations)
 var links = makeLinks(relations2);
 
 if(hideHidden) {
@@ -347,6 +348,7 @@ graph.sourceRoleName = g.selectAll('.srcRoleName')
 graph.targetRoleName = g.selectAll('.tarRoleName')
 graph.controlPoint = g.selectAll('.controlPoint')
 graph.pathControlPoint = g.selectAll('.pathControlPoint')
+graph.iPathControlPoint = g.selectAll('.iPathControlPoint')
 
 setAssociationControlPoint(root.associations);
 setPathControlPoint(relations2);
@@ -822,6 +824,22 @@ function update() {
 
 	var dragPathControlPoint = d3.drag().on("drag", movePathControlPoint)
 	graph.pathControlPoint.call(dragPathControlPoint)
+
+	var dragInternalPath = d3.drag()
+		.on("drag", moveInternalPath)
+
+	graph.iPathControlPoint = graph.iPathControlPoint.data(internalRelations)
+	graph.iPathControlPoint.exit().remove()
+	graph.iPathControlPoint = graph.iPathControlPoint.enter()
+		.append('circle')
+		.attr('r', 5)
+		.attr('fill', 'yellow')
+		.merge(graph.iPathControlPoint)
+		.attr('visibility', function() {
+			return controlPointsHidden ? "hidden" : "visible"
+		})
+
+	graph.iPathControlPoint.call(dragInternalPath)
 }
 
 function moveLeftText(d) {
@@ -865,6 +883,16 @@ function movePathControlPoint(d) {
 
 	d.control_x = d3.event.x - qx
 	d.control_y = d3.event.y - qy
+	ticked()
+}
+
+function moveInternalPath(d) {
+
+	var ys = (d.source.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
+	var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
+
+	d.control_x = d3.event.x - d.source.entity.x
+	d.control_y = d3.event.y - (yt+(ys-yt)/2)
 	ticked()
 }
 
@@ -1103,21 +1131,19 @@ function ticked() {
 		var bend = 4
 		var rnd = 0;
 		if(d.source.index < d.target.index) {
-			var start = "M " + (d.source.entity.x + boxWidth/2-arrowMargin) + " " + (ys+5) + " "
-			var c1 = "" + (d.source.entity.x + ((boxWidth/2-arrowMargin) + 20 + 
-					(bend*Math.abs(d.source.index - d.target.index)) + rnd)) + " " + (ys+5)
-			var c2 = "" + (d.source.entity.x + ((boxWidth/2-arrowMargin) + 20 + 
-					(bend*Math.abs(d.source.index - d.target.index)) + rnd)) + " " + (yt-5)
+			var start = "M " + (d.source.entity.x + boxWidth/2 - arrowMargin) + " " + (ys+5) + " "
+			var c1 = "" + (d.source.entity.x + d.control_x) + " " + (ys+5)
+			var q = "" + (d.source.entity.x + d.control_x) + " " + (d.control_y + yt+(ys-yt)/2)
+			var c2 = "" + (d.source.entity.x + d.control_x) + " " + (yt-5)
 			var end = (d.source.entity.x + boxWidth/2 - arrowMargin + 5) + " " + (yt-5)
 		} else {
 			var start = "M " + (d.source.entity.x - boxWidth/2 + arrowMargin) + " " + (ys-5) + " "
-			var c1 = "" + (d.source.entity.x - boxWidth/2 + (arrowMargin) - 20 - 
-					(bend*Math.abs(d.source.index - d.target.index)) + rnd) + " " + (ys-5)
-			var c2 = "" + (d.source.entity.x - boxWidth/2 + (arrowMargin) - 20 - 
-					(bend*Math.abs(d.source.index - d.target.index)) + rnd) + " " + (yt+5)
+			var c1 = "" + (d.source.entity.x + d.control_x) + " " + (ys-5)
+			var q = "" + (d.source.entity.x + d.control_x) + " " + (d.control_y + yt+(ys-yt)/2)
+			var c2 = "" + (d.source.entity.x + d.control_x) + " " + (yt+5)
 			var end = (d.source.entity.x - boxWidth/2 + arrowMargin - 5) + " " + (yt+5)
 		}
-		return start + " C " + c1 + " " + c2 + " " + end
+		return start + " Q " + c1 + " " + q + " M " + q + " Q " + c2 + " " + end
 	})
 
 	graph.sourceRoleName.each(function(d) {
@@ -1170,6 +1196,15 @@ function ticked() {
 
 		point.attr('cx', qx)
 		point.attr('cy', qy)
+	})
+
+	graph.iPathControlPoint.each(function(d) {
+		var point = d3.select(this)
+
+		var ys = (d.source.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
+		var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
+		point.attr('cx', d.source.entity.x + d.control_x)
+		point.attr('cy', (yt+(ys-yt)/2) + d.control_y)
 	})
 }
 
@@ -1340,7 +1375,6 @@ function createAssetBox(d) {
 	group.appendChild(label)
 	for(step in d.children) {
 		var attackStep = d.children[step]
-		attackStep.index = parseInt(step)
 		classString += " " + d.name + "_" + attackStep.name
 		//Rectangle for each Attack Step
 		var asbox = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
