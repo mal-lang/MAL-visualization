@@ -65,6 +65,9 @@ setAssociationId(root);
 var isa = makeIsa(root);
 var relations = makeRelations(root);
 var relations2 = setRelationAssociations(relations, root.associations);
+var internalRelations = relations.filter(function(r) {
+	return r.source.entity.name == r.target.entity.name
+})
 var links = makeLinks(relations2);
 
 if(hideHidden) {
@@ -339,6 +342,7 @@ graph.asset = g.selectAll('.asset')
 graph.attackPath = g.selectAll('.attackpath')
 graph.aLink = g.selectAll('.aLink')
 graph.iLink = g.selectAll('.iLink')
+graph.internalPath = g.selectAll('.internalPath')
 graph.sourceRoleName = g.selectAll('.srcRoleName')
 graph.targetRoleName = g.selectAll('.tarRoleName')
 graph.controlPoint = g.selectAll('.controlPoint')
@@ -718,6 +722,29 @@ function update() {
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
+	graph.internalPath = graph.internalPath.data(internalRelations)
+	graph.internalPath.exit().remove()
+	graph.internalPath = graph.internalPath.enter()
+		.append('path')
+		.attr('stroke-width', 1.1)
+		.attr('stroke', 'black')
+		.attr('fill', 'none')
+		.attr('marker-end', 'url(#arrow)')
+		.attr('class', function(d) {
+			return ' notClickable attackPath child_to_' + 
+				d.source.entity.name + "_" + d.source.name + 
+				' parent_to_' + d.target.entity.name + "_" + d.target.name
+		})
+		.attr('id', function(d) {
+			return getPathId(d)
+		})
+		.merge(graph.internalPath)
+		.attr("visibility", function(d) {
+			return d.source.entity.hidden || 
+				d.target.entity.hidden ||
+				allAttackPathsHidden ? "hidden" : "visible"
+		})
+
 	var dragLeftText = d3.drag()
 		.on("drag", moveLeftText)
 
@@ -1070,6 +1097,29 @@ function ticked() {
 		link.attr('y2', midPoint.y)
 	})
 	
+	graph.internalPath.attr('d', function(d) {
+		var ys = (d.source.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
+		var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
+		var bend = 4
+		var rnd = 0;
+		if(d.source.index < d.target.index) {
+			var start = "M " + (d.source.entity.x + boxWidth/2-arrowMargin) + " " + (ys+5) + " "
+			var c1 = "" + (d.source.entity.x + ((boxWidth/2-arrowMargin) + 20 + 
+					(bend*Math.abs(d.source.index - d.target.index)) + rnd)) + " " + (ys+5)
+			var c2 = "" + (d.source.entity.x + ((boxWidth/2-arrowMargin) + 20 + 
+					(bend*Math.abs(d.source.index - d.target.index)) + rnd)) + " " + (yt-5)
+			var end = (d.source.entity.x + boxWidth/2 - arrowMargin + 5) + " " + (yt-5)
+		} else {
+			var start = "M " + (d.source.entity.x - boxWidth/2 + arrowMargin) + " " + (ys-5) + " "
+			var c1 = "" + (d.source.entity.x - boxWidth/2 + (arrowMargin) - 20 - 
+					(bend*Math.abs(d.source.index - d.target.index)) + rnd) + " " + (ys-5)
+			var c2 = "" + (d.source.entity.x - boxWidth/2 + (arrowMargin) - 20 - 
+					(bend*Math.abs(d.source.index - d.target.index)) + rnd) + " " + (yt+5)
+			var end = (d.source.entity.x - boxWidth/2 + arrowMargin - 5) + " " + (yt+5)
+		}
+		return start + " C " + c1 + " " + c2 + " " + end
+	})
+
 	graph.sourceRoleName.each(function(d) {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
@@ -1336,50 +1386,6 @@ function createAssetBox(d) {
 		group.append(asbox)
 		group.appendChild(text)
     }
-    
-	//Draw internal Attack paths
-	for(step in d.children) {
-		var attackStep = d.children[step]
-		for(child in attackStep.target_steps) {
-			relation = attackStep.target_steps[child]
-			if(attackStep.entity.name == relation.entity.name) {
-				var line = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-				var ys = (attackStep.index * attackStepHeight + labelHeight + 12)
-				var yt = (relation.index * attackStepHeight + labelHeight + 12)
-				var bend = 4
-				var rnd = (Math.random()-0.5)*15;
-				if(attackStep.index < relation.index) {
-					var start = "M " + (boxWidth-arrowMargin) + " " + (ys+5) + " "
-					var c1 = "" + ((boxWidth-arrowMargin) + 20 + 
-							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (ys+5)
-					var c2 = "" + ((boxWidth-arrowMargin) + 20 + 
-							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (yt-5)
-					var end = (boxWidth - arrowMargin + 5) + " " + (yt-5)
-				} else {
-					var start = "M " + arrowMargin + " " + (ys-5) + " "
-					var c1 = "" + ((arrowMargin) - 20 - 
-							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (ys-5)
-					var c2 = "" + ((arrowMargin) - 20 - 
-							(bend*Math.abs(attackStep.index - relation.index)) + rnd) + " " + (yt+5)
-                    var end = (arrowMargin - 5) + " " + (yt+5)
-				}
-				line.setAttributeNS(null, 'd', start + " C " + c1 + " " + c2 + " " + end)
-				line.setAttributeNS(null, 'stroke-width', 1.1)
-				line.setAttributeNS(null, 'stroke', 'black')
-				line.setAttributeNS(null, 'fill', 'none')
-				line.setAttributeNS(null, 'marker-end', 'url(#arrow)')
-				line.setAttributeNS(null, 'id', 
-					'path_' + attackStep.entity.name + "_" + attackStep.name + "_" +
-					relation.entity.name + "_" + relation.name	
-				)
-				line.setAttributeNS(null, 'class', 'notClickable attackPath' +
-					' child_to_' + attackStep.entity.name + "_" + attackStep.name +
-					' parent_to_' + relation.entity.name + "_" + relation.name
-				)
-				group.appendChild(line)
-			}
-		}
-	}
 	group.setAttributeNS(null, 'class', classString)
 	group.setAttributeNS(null, 'id', 'asset_' + d.name)
 	return group
