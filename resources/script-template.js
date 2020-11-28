@@ -68,7 +68,6 @@ var relations2 = setRelationAssociations(relations, root.associations);
 var internalRelations = relations.filter(function(r) {
 	return r.source.entity.name == r.target.entity.name
 })
-setInternalRelationsControlPoints(internalRelations)
 var links = makeLinks(relations2);
 
 if(hideHidden) {
@@ -101,8 +100,16 @@ if(hideHidden) {
 			return !r.source.hiddenStep && !r.target.hiddenStep
 		})
 	}
+	if(internalRelations) {
+		internalRelations = internalRelations.filter(function(r) {
+			return !r.source.hiddenStep && !r.target.hiddenStep
+		})
+	}
 	links = makeLinks(relations2)
 }
+
+setAttackStepIndices(root)
+setInternalRelationsControlPoints(internalRelations)
 
 //Count pairs to calculate bend on asset relations to avoid overlap
 if(root.associations) {

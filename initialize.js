@@ -177,6 +177,18 @@ function makeLinks(relations) {
     return {aLinks: aLinks, iLinks: iLinks}
 }
 
+function setAttackStepIndices(root) {
+    if (root.children) {
+        root.children.forEach(function(entity) {
+            if (entity.children) {
+                entity.children.forEach(function(attack_step, i) {
+                    attack_step.index = i
+                })
+            }
+        })
+    }
+}
+
 function initialize(root) {
     nodes = []
     nodes.push(root);
@@ -208,7 +220,6 @@ function initialize(root) {
 			} 
             if (entity.children) {
                 entity.children.forEach(function(attack_step, i) {
-                    attack_step.index = i
                     attack_step.opacity = 1
                     if (attack_step.targets) {
                         attack_step.targets.forEach(function(target_ref) {
