@@ -119,13 +119,11 @@ function setInternalRelationsControlPoints(internalRelations) {
             var rnd = 0
             var bend = 4
             if(ir.source.index < ir.target.index) {
-                ir.control_x = ((boxWidth/2-arrowMargin) + 20 + 
-                    (bend*Math.abs(ir.source.index - ir.target.index)) + rnd)
+                ir.control_x = (boxWidth/2-arrowMargin) + 20 + 2*((ir.source.entity.children.length-ir.source.index)/ir.source.entity.children.length)*(arrowMargin - sideMargin - 25)
             } else {
-                ir.control_x = (-boxWidth/2 + (arrowMargin) - 20 - 
-					(bend*Math.abs(ir.source.index - ir.target.index)) + rnd)
+                ir.control_x = (-boxWidth/2 + arrowMargin) - 20 - 2*(ir.source.index/ir.source.entity.children.length)*(arrowMargin - sideMargin - 25)
             }
-            ir.control_y = 0
+            //ir.control_y = 0
         })
     }
 }

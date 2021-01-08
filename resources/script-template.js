@@ -355,7 +355,6 @@ graph.sourceRoleName = g.selectAll('.srcRoleName')
 graph.targetRoleName = g.selectAll('.tarRoleName')
 graph.controlPoint = g.selectAll('.controlPoint')
 graph.pathControlPoint = g.selectAll('.pathControlPoint')
-graph.iPathControlPoint = g.selectAll('.iPathControlPoint')
 
 setAssociationControlPoint(root.associations);
 setPathControlPoint(relations2);
@@ -811,8 +810,11 @@ function update() {
 		.attr('r', 5)
 		.attr('fill', 'blue')
 		.merge(graph.controlPoint)
-		.attr('visibility', function() {
-			return controlPointsHidden ? "hidden" : "visible"
+		.attr('visibility', function(d) {
+			return controlPointsHidden || 
+				d.source.hidden || 
+				d.target.hidden || 
+				allAssociationsHidden? "hidden" : "visible"
 		})
 
 	var dragControlPoint = d3.drag().on("drag", moveControlPoint)
@@ -825,28 +827,16 @@ function update() {
 		.attr('r', 5)
 		.attr('fill', 'red')
 		.merge(graph.pathControlPoint)
-		.attr('visibility', function() {
-			return controlPointsHidden ? "hidden" : "visible"
+		.attr('visibility', function(d) {
+			return controlPointsHidden ||
+				d.source.entity.hidden || 
+				d.target.entity.hidden ||
+				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
 	var dragPathControlPoint = d3.drag().on("drag", movePathControlPoint)
 	graph.pathControlPoint.call(dragPathControlPoint)
 
-	var dragInternalPath = d3.drag()
-		.on("drag", moveInternalPath)
-
-	graph.iPathControlPoint = graph.iPathControlPoint.data(internalRelations)
-	graph.iPathControlPoint.exit().remove()
-	graph.iPathControlPoint = graph.iPathControlPoint.enter()
-		.append('circle')
-		.attr('r', 5)
-		.attr('fill', 'yellow')
-		.merge(graph.iPathControlPoint)
-		.attr('visibility', function() {
-			return controlPointsHidden ? "hidden" : "visible"
-		})
-
-	graph.iPathControlPoint.call(dragInternalPath)
 }
 
 function moveLeftText(d) {
@@ -890,16 +880,6 @@ function movePathControlPoint(d) {
 
 	d.control_x = d3.event.x - qx
 	d.control_y = d3.event.y - qy
-	ticked()
-}
-
-function moveInternalPath(d) {
-
-	var ys = (d.source.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
-	var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
-
-	d.control_x = d3.event.x - d.source.entity.x
-	d.control_y = d3.event.y - (yt+(ys-yt)/2)
 	ticked()
 }
 
@@ -1137,20 +1117,24 @@ function ticked() {
 		var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
 		var bend = 4
 		var rnd = 0;
+
 		if(d.source.index < d.target.index) {
 			var start = "M " + (d.source.entity.x + boxWidth/2 - arrowMargin) + " " + (ys+5) + " "
-			var c1 = "" + (d.source.entity.x + d.control_x) + " " + (ys+5)
-			var q = "" + (d.source.entity.x + d.control_x) + " " + (d.control_y + yt+(ys-yt)/2)
-			var c2 = "" + (d.source.entity.x + d.control_x) + " " + (yt-5)
+			var c1 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (ys+5)
+			var q1 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (ys+15)
+			var q2 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (yt-15)
+			var c2 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (yt-5)
 			var end = (d.source.entity.x + boxWidth/2 - arrowMargin + 5) + " " + (yt-5)
+			return start + "Q " + c1 + " " + q1 + " M " + q1 + " L " + q2 + " M " + q2 + " Q " + c2 + " " + end
 		} else {
 			var start = "M " + (d.source.entity.x - boxWidth/2 + arrowMargin) + " " + (ys-5) + " "
-			var c1 = "" + (d.source.entity.x + d.control_x) + " " + (ys-5)
-			var q = "" + (d.source.entity.x + d.control_x) + " " + (d.control_y + yt+(ys-yt)/2)
-			var c2 = "" + (d.source.entity.x + d.control_x) + " " + (yt+5)
+			var c1 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (ys-5)
+			var q1 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (ys-15)
+			var q2 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (yt+15)
+			var c2 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (yt+5)
 			var end = (d.source.entity.x - boxWidth/2 + arrowMargin - 5) + " " + (yt+5)
+			return start + "Q " + c1 + " " + q1 + " M " + q1 + " L " + q2 + " M " + q2 + " Q " + c2 + " " + end
 		}
-		return start + " Q " + c1 + " " + q + " M " + q + " Q " + c2 + " " + end
 	})
 
 	graph.sourceRoleName.each(function(d) {
@@ -1205,14 +1189,6 @@ function ticked() {
 		point.attr('cy', qy)
 	})
 
-	graph.iPathControlPoint.each(function(d) {
-		var point = d3.select(this)
-
-		var ys = (d.source.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
-		var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
-		point.attr('cx', d.source.entity.x + d.control_x)
-		point.attr('cy', (yt+(ys-yt)/2) + d.control_y)
-	})
 }
 
 function draggedStart(d) {
