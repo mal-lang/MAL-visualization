@@ -189,6 +189,7 @@ var hideAssets = d3.select('#menu')
 	})
 
 //Hide category buttons
+var hiddenCategories = []
 if(Object.keys(categories)[0] != "undefined") {
 	var categoryButtons = d3.select('#assetMenu')
 		.selectAll('.catButton')
@@ -215,13 +216,10 @@ if(Object.keys(categories)[0] != "undefined") {
 		.attr("id", function(d,i) { return 'a'+i; })
 		.on("click", function(d) {
 			d.hidden = !d.hidden
-			if(root.children) {
-				root.children.forEach(function(asset) {
-					if(asset.category == d.name) {
-						document.getElementById('asset_checkbox_' + asset.name).checked = !d.hidden
-						asset.hidden = d.hidden
-					}
-				})
+			if(d.hidden) {
+				hiddenCategories.push(d.name)
+			} else {
+				hiddenCategories = hiddenCategories.filter(function(c) { return c != d.name })
 			}
 			update()
 		})
@@ -603,6 +601,10 @@ function getPathId(d) {
         "_" + d.target.entity.name + "_" + d.target.name
 }
 
+function isHidden(d) {
+	return d.hidden || hiddenCategories.includes(d.category)
+}
+
 //Reset visibility when assets are shown/hidden
 function update() {
     graph.association = graph.association.data(root.associations)
@@ -618,8 +620,8 @@ function update() {
 		})
 		.merge(graph.association)
 		.attr("visibility", function(d) {
-			return d.source.hidden || 
-				d.target.hidden || 
+			return isHidden(d.source) || 
+				isHidden(d.target) || 
 				allAssociationsHidden ? "hidden" : "visible"
 		})
 
@@ -642,8 +644,8 @@ function update() {
         })
         .merge(graph.isa)
         .attr("visibility", function(d) {
-			return d.subAsset.hidden || 
-				d.superAsset.hidden || 
+			return isHidden(d.subAsset) || 
+				isHidden(d.superAsset) || 
 				allIsaLinksHidden ? "hidden" : "visible"
 		})
 
@@ -660,10 +662,10 @@ function update() {
 		})
 		.merge(graph.aLink)
 		.attr("visibility", function(d) {
-			return d.path.source.entity.hidden || 
-				d.path.target.entity.hidden ||
-				d.association.source.hidden ||
-				d.association.target.hidden ||
+			return isHidden(d.path.source.entity) || 
+				isHidden(d.path.target.entity) ||
+				isHidden(d.association.source) ||
+				isHidden(d.association.target) ||
 				allAssociationsHidden ||
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
@@ -685,10 +687,10 @@ function update() {
 		})
 		.merge(graph.iLink)
 		.attr("visibility", function(d) {
-			return d.path.source.entity.hidden || 
-				d.path.target.entity.hidden ||
-				assetMap[d.link.source].hidden ||
-				assetMap[d.link.target].hidden ||
+			return isHidden(d.path.source.entity) || 
+				isHidden(d.path.target.entity) ||
+				isHidden(assetMap[d.link.source]) ||
+				isHidden(assetMap[d.link.target]) ||
 				allAttackPathsHidden ||
 				allIsaLinksHidden ? "hidden" : "visible"
 		})
@@ -698,7 +700,9 @@ function update() {
     graph.asset = graph.asset.enter()
         .append(createAssetBox)
         .merge(graph.asset)
-        .attr("visibility", function(d) { return d.hidden ? "hidden" : "visible" })
+        .attr("visibility", function(d) {
+			return isHidden(d) ? "hidden" : "visible" 
+		})
 
     var drag = d3.drag()
 		.on("start", draggedStart)
@@ -725,8 +729,8 @@ function update() {
         })
         .merge(graph.attackPath)
 		.attr("visibility", function(d) {
-			return d.source.entity.hidden || 
-				d.target.entity.hidden ||
+			return isHidden(d.source.entity) || 
+				isHidden(d.target.entity) ||
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
@@ -748,8 +752,8 @@ function update() {
 		})
 		.merge(graph.internalPath)
 		.attr("visibility", function(d) {
-			return d.source.entity.hidden || 
-				d.target.entity.hidden ||
+			return isHidden(d.source.entity) || 
+				isHidden(d.target.entity) ||
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
@@ -771,8 +775,8 @@ function update() {
 			return elem.getAttributeNS(null, 'class')
 		})
 		.attr("visibility", function(d) {
-			return d.source.hidden || 
-				d.target.hidden ||
+			return isHidden(d.source) || 
+			isHidden(d.target) ||
 				allAssociationsHidden ? "hidden" : "visible"
 		})
 
@@ -796,8 +800,8 @@ function update() {
 			return elem.getAttributeNS(null, 'class')
 		})
 		.attr("visibility", function(d) {
-			return d.source.hidden || 
-				d.target.hidden ||
+			return isHidden(d.source) || 
+				isHidden(d.target) ||
 				allAssociationsHidden ? "hidden" : "visible"
 		})
 
@@ -812,8 +816,8 @@ function update() {
 		.merge(graph.controlPoint)
 		.attr('visibility', function(d) {
 			return controlPointsHidden || 
-				d.source.hidden || 
-				d.target.hidden || 
+				isHidden(d.source) || 
+				isHidden(d.target) || 
 				allAssociationsHidden? "hidden" : "visible"
 		})
 
@@ -829,8 +833,8 @@ function update() {
 		.merge(graph.pathControlPoint)
 		.attr('visibility', function(d) {
 			return controlPointsHidden ||
-				d.source.entity.hidden || 
-				d.target.entity.hidden ||
+				isHidden(d.source.entity) || 
+				isHidden(d.target.entity) ||
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
