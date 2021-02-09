@@ -48,7 +48,7 @@ function setAssociationControlPoint(associations) {
 function setPathControlPoint(relations2) {
     if(relations2) {
         relations2.forEach(function(r) {
-            r.control_x = 0
+            r.control_x = Math.random() * 50
             r.control_y = 0
         })
     }

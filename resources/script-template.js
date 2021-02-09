@@ -874,12 +874,10 @@ function moveControlPoint(d) {
 }
 
 function movePathControlPoint(d) {
-	var x1 = d.source.entity.x
 	var y1 = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-	var x2 = d.target.entity.x
 	var y2 = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
-	var qx = x1+((x2-x1)*0.5)
+	var qx = getPathControlX(d) - d.control_x
 	var qy = y1+((y2-y1)*0.5)
 
 	d.control_x = d3.event.x - qx
@@ -938,6 +936,27 @@ function boxintersection(x1, y1, x2, y2, w1, h1, w2, h2) {
 		}
 	}
 	return [ip_a, ip_b]
+}
+
+function getPathControlX(d) {
+	var controllBend = 125
+	if(Math.abs(d.source.entity.x - 
+		d.target.entity.x) < boxWidth/2) {
+		var x1c = d.source.entity.x
+		var x2c = d.target.entity.x
+
+		if(d.source.entity.x < width/2) {
+			return x1c+((x2c-x1c)*0.5) + d.control_x - boxWidth/2 + sideMargin - controllBend
+			
+		} else {
+			return x1c+((x2c-x1c)*0.5) + d.control_x + boxWidth/2 - sideMargin + controllBend
+		}
+	} else {
+		var x1c = d.source.entity.x
+		var x2c = d.target.entity.x
+		
+		return x1c+((x2c-x1c)*0.5) + d.control_x
+	}
 }
 
 //Update positions on simulation and drag
@@ -1017,9 +1036,14 @@ function ticked() {
 			return
 		}
         var controllBend = 125
+		var y1 = d.source.entity.y + (d.source.index * attackStepHeight) + 12 + labelHeight
+		var y2 = d.target.entity.y + (d.target.index * attackStepHeight) + 12 + labelHeight
 		//Decide if connect to Attack Steps on left or right side
 		if(Math.abs(d.source.entity.x - 
 					d.target.entity.x) < boxWidth/2) {
+			var y1c = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+			var y2c = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)			
+
 			if(d.source.entity.x < width/2) {
 				var x1 = d.source.entity.x - boxWidth/2 + sideMargin
 				var x2 = d.target.entity.x - boxWidth/2 + sideMargin - 5
@@ -1031,44 +1055,36 @@ function ticked() {
 				var c1 = x1 + controllBend
 				var c2 = x2 + controllBend
 			}
-		}
-		else if(d.source.entity.x - d.target.entity.x > 0) {
+
+			var qx = getPathControlX(d)
+			var qy = y1c+((y2c-y1c)*0.5) + d.control_y
+
+			return "M " + x1 + " " + (y1+5) + " C " + c1 + " " + (y1+5) + ", " + qx + " " + (y1+5)  + ", " + qx + " " + qy +
+				" M " + qx + " " + qy + " C " + qx + " " + (y2-5) + ", " + c2 + " " + (y2-5) + ", " + x2 + " " + (y2-5)
+		} else {
+			if(d.source.entity.x - d.target.entity.x > 0) {
 			var x1 = d.source.entity.x - boxWidth/2 + sideMargin
 			var x2 = d.target.entity.x + boxWidth/2 - sideMargin + 5
 			var c1 = x1 - controllBend
 			var c2 = x2 + controllBend
-		} else {
-			var x1 = d.source.entity.x + boxWidth/2 - sideMargin
-			var x2 = d.target.entity.x - boxWidth/2 + sideMargin - 5
-			var c1 = x1 + controllBend
-			var c2 = x2 - controllBend
-        }
-		var y1 = d.source.entity.y + 
-				(d.source.index * attackStepHeight) + 12 + labelHeight
-		var y2 = d.target.entity.y + 
-				(d.target.index * attackStepHeight) + 12 + labelHeight
+			} else {
+				var x1 = d.source.entity.x + boxWidth/2 - sideMargin
+				var x2 = d.target.entity.x - boxWidth/2 + sideMargin - 5
+				var c1 = x1 + controllBend
+				var c2 = x2 - controllBend
+			}
+			var x1c = d.source.entity.x
+			var y1c = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
+			var x2c = d.target.entity.x
+			var y2c = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
-		/*
-		var qx = d.source.entity.x + d.control_x
-		var qy = d.source.entity.y + d.control_y
+			var qx = getPathControlX(d)
+			var qy = y1c+((y2c-y1c)*0.5) + d.control_y
+			
+			return "M " + x1 + " " + (y1+5) + " C " + c1 + " " + (y1+5) + ", " + qx + " " + (y1+5)  + ", " + qx + " " + qy +
+				" M " + qx + " " + qy + " C " + qx + " " + (y2-5) + ", " + c2 + " " + (y2-5) + ", " + x2 + " " + (y2-5)
 
-		return "M " + x1 + " " + (y1+5) + 
-			" C " + c1 + " " + (y1+5) + " " + 
-			c2 + " " + (y2-5) + " " + x2 + " " + (y2-5)
-		*/
-
-		var x1c = d.source.entity.x
-		var y1c = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-		var x2c = d.target.entity.x
-		var y2c = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-
-		var qx = x1c+((x2c-x1c)*0.5) + d.control_x
-		var qy = y1c+((y2c-y1c)*0.5) + d.control_y
-		
-		//return "M " + x1 + " " + (y1+5) + " Q " + c1 + " " + (y1+5) + ", " + qx + " " + qy + " T " + x2 + " " + (y2-5)
-		return "M " + x1 + " " + (y1+5) + " C " + c1 + " " + (y1+5) + ", " + qx + " " + (y1+5)  + ", " + qx + " " + qy +
-			" M " + qx + " " + qy + " C " + qx + " " + (y2-5) + ", " + c2 + " " + (y2-5) + ", " + x2 + " " + (y2-5)
-
+		}
 	})
 	
     graph.aLink.each(function(d) {
@@ -1079,7 +1095,7 @@ function ticked() {
 		var x2c = d.path.target.entity.x
 		var y2c = d.path.target.entity.y + (d.path.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
-		var qx = x1c+((x2c-x1c)*0.5) + d.path.control_x
+		var qx = getPathControlX(d.path)
 		var qy = y1c+((y2c-y1c)*0.5) + d.path.control_y
         link.attr('x1', qx)
 		link.attr('y1', qy)
@@ -1100,7 +1116,7 @@ function ticked() {
 		var x2c = d.path.target.entity.x
 		var y2c = d.path.target.entity.y + (d.path.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
-		var x1 = x1c+((x2c-x1c)*0.5) + d.path.control_x
+		var x1 = getPathControlX(d.path)
 		var y1 = y1c+((y2c-y1c)*0.5) + d.path.control_y
 
         var inheritance_id = "inheritance_" + d.link.source + "_" + d.link.target
@@ -1186,7 +1202,7 @@ function ticked() {
 		var x2 = d.target.entity.x
 		var y2 = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
-		var qx = x1+((x2-x1)*0.5) + d.control_x
+		var qx = getPathControlX(d)
 		var qy = y1+((y2-y1)*0.5) + d.control_y
 
 		point.attr('cx', qx)
