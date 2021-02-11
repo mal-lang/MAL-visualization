@@ -29,6 +29,7 @@ var attackStepHeight = 30
 var sideMargin = 30
 var arrowMargin = 85
 
+//Confirm hidden and prompt width
 var hideHidden = confirm("Hide \"@hidden\" attack steps? (OK = yes)")
 var maxNameLength = prompt("Select asset width (default: 19)", 19)
 boxWidth = boxWidth - (9*(19-maxNameLength))
@@ -43,6 +44,7 @@ var colors = [
 	["#DD5E03", "#FEAC72"]
 ]
 
+//Root json object
 var root = {{JSON}}
 
 //Set category indices
@@ -70,6 +72,7 @@ var internalRelations = relations.filter(function(r) {
 })
 var links = makeLinks(relations2);
 
+//Remove @hidden attack steps if confirmed
 if(hideHidden) {
 	if(root.children) {
 		root.children.forEach(function(a) {
@@ -141,6 +144,7 @@ if(relations) {
 	})
 }
 
+//Force simulation object
 var simulation = d3.forceSimulation(root.children)
 	.force('link', d3.forceLink().links(root.associations).strength(0.01))
 	//.force('center', d3.forceCenter(width/2, height/2))
@@ -272,6 +276,7 @@ var exportButton = d3.select('#exportMenu')
 	})
 	.attr("onclick", "export_svg()")
 
+//Bottom menu
 var controlPointsHidden = true
 var hideControlPoints = d3.select('#bottomMenu')
 	.selectAll('.hideControlPointsButton')
@@ -293,7 +298,7 @@ var hideControlPoints = d3.select('#bottomMenu')
 var allAssociationsHidden = false
 var hideAssociations = d3.select('#bottomMenu')
 	.selectAll('.hideAssociationsButton')
-	.data([{text: "Hide all associations"}])
+	.data([{text: "Hide associations"}])
 	.enter()
 	.append("label")
 	.attr("class", "font")
@@ -354,6 +359,7 @@ graph.targetRoleName = g.selectAll('.tarRoleName')
 graph.controlPoint = g.selectAll('.controlPoint')
 graph.pathControlPoint = g.selectAll('.pathControlPoint')
 
+//Set control points
 setAssociationControlPoint(root.associations);
 setPathControlPoint(relations2);
 update()
@@ -605,8 +611,9 @@ function isHidden(d) {
 	return d.hidden || hiddenCategories.includes(d.category)
 }
 
-//Reset visibility when assets are shown/hidden
+//Reset visibility when assets are shown/hidden. Mostly D3 related functions.
 function update() {
+	//Bent line representing associations
     graph.association = graph.association.data(root.associations)
 	graph.association.exit().remove()
 	graph.association = graph.association.enter()
@@ -625,11 +632,13 @@ function update() {
 				allAssociationsHidden ? "hidden" : "visible"
 		})
 
+	//Title on mouseover association
 	graph.association.append('svg:title').text(function(d) {
 		return d.source.name + " [" + d.leftName + "] <-- " + d.name +
 			" --> [" + d.rightName + "] " + d.target.name
 	})
 
+	//Thick arrow representing extends relation
     graph.isa = graph.isa.data(isa)
     graph.isa.exit().remove()
     graph.isa = graph.isa.enter()
@@ -649,6 +658,7 @@ function update() {
 				allIsaLinksHidden ? "hidden" : "visible"
 		})
 
+	//Blue dashed line visualizing which attack step relations are related to which association
 	graph.aLink = graph.aLink.data(links.aLinks)
 	graph.aLink.exit().remove()
 	graph.aLink = graph.aLink.enter()
@@ -670,6 +680,7 @@ function update() {
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
+	//Red dashed line visualizing which attack step relations are related to which extends relation
 	graph.iLink = graph.iLink.data(links.iLinks)
 	graph.iLink.exit().remove()
 	graph.iLink = graph.iLink.enter()
@@ -695,6 +706,7 @@ function update() {
 				allIsaLinksHidden ? "hidden" : "visible"
 		})
 
+	//Asset representation
     graph.asset = graph.asset.data(root.children)
     graph.asset.exit().remove()
     graph.asset = graph.asset.enter()
@@ -704,13 +716,14 @@ function update() {
 			return isHidden(d) ? "hidden" : "visible" 
 		})
 
+	//Movable assets
     var drag = d3.drag()
 		.on("start", draggedStart)
 		.on("drag", dragged)
 		.on("end", draggedEnd)
-
     graph.asset.call(drag)
     
+	//External attack step relations
     graph.attackPath = graph.attackPath.data(relations2)
 	graph.attackPath.exit().remove()
     graph.attackPath = graph.attackPath.enter()
@@ -734,6 +747,7 @@ function update() {
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
+	//Internal attack step relations
 	graph.internalPath = graph.internalPath.data(internalRelations)
 	graph.internalPath.exit().remove()
 	graph.internalPath = graph.internalPath.enter()
@@ -757,9 +771,10 @@ function update() {
 				allAttackPathsHidden ? "hidden" : "visible"
 		})
 
+	//Move role name
 	var dragLeftText = d3.drag()
 		.on("drag", moveLeftText)
-
+	//Role name
 	graph.sourceRoleName = graph.sourceRoleName.data(root.associations.filter(function(d) {
 		return d.source.name != d.target.name
 	}))
@@ -782,9 +797,10 @@ function update() {
 
 	graph.sourceRoleName.call(dragLeftText)
 
+	//Move role name
 	var dragRightText = d3.drag()
 		.on("drag", moveRightText)
-
+	//Role name
 	graph.targetRoleName = graph.targetRoleName.data(root.associations.filter(function(d) {
 		return d.source.name != d.target.name
 	}))
@@ -807,6 +823,7 @@ function update() {
 
 	graph.targetRoleName.call(dragRightText)
 
+	//Control point controlling association bend
 	graph.controlPoint = graph.controlPoint.data(root.associations)
 	graph.controlPoint.exit().remove()
 	graph.controlPoint = graph.controlPoint.enter()
@@ -824,6 +841,7 @@ function update() {
 	var dragControlPoint = d3.drag().on("drag", moveControlPoint)
 	graph.controlPoint.call(dragControlPoint)
 
+	//Control point controlling attack step relation curve
 	graph.pathControlPoint = graph.pathControlPoint.data(relations2)
 	graph.pathControlPoint.exit().remove()
 	graph.pathControlPoint = graph.pathControlPoint.enter()
@@ -843,6 +861,7 @@ function update() {
 
 }
 
+//Drag role name ("left" side)
 function moveLeftText(d) {
 	var elem = document.getElementById(getAssociationId(d))
 	var point = elem.getPointAtLength(elem.getTotalLength() * 0.2)
@@ -851,6 +870,7 @@ function moveLeftText(d) {
 	ticked()
 }
 
+//Drag role name ("right" side)
 function moveRightText(d) {
 	var elem = document.getElementById(getAssociationId(d))
 	var point = elem.getPointAtLength(elem.getTotalLength() * 0.8)
@@ -859,6 +879,7 @@ function moveRightText(d) {
 	ticked()
 }
 
+//Move association control point
 function moveControlPoint(d) {
 	var x1 = d.source.x
 	var y1 = d.source.y + (attackStepHeight * d.source.children.length + labelHeight + sideMargin/2)/2
@@ -873,6 +894,7 @@ function moveControlPoint(d) {
 	ticked()
 }
 
+//Move attack step relation control point
 function movePathControlPoint(d) {
 	var y1 = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 	var y2 = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
@@ -885,6 +907,7 @@ function movePathControlPoint(d) {
 	ticked()
 }
 
+//Helper function to find box intersection
 function lineintersection(a, b, c, d, segment) {
 	var p = segment[0]
 	var q = segment[1]
@@ -907,6 +930,7 @@ function lineintersection(a, b, c, d, segment) {
 }
 
 //Coordinates width and height for asset boxes
+//Returns intersection points
 function boxintersection(x1, y1, x2, y2, w1, h1, w2, h2) {
 	//intersection a
 	var segments = [
@@ -938,6 +962,7 @@ function boxintersection(x1, y1, x2, y2, w1, h1, w2, h2) {
 	return [ip_a, ip_b]
 }
 
+//Returns x-coordinate for the attack step relation control points
 function getPathControlX(d) {
 	var controllBend = 125
 	if(Math.abs(d.source.entity.x - 
@@ -961,12 +986,15 @@ function getPathControlX(d) {
 
 //Update positions on simulation and drag
 function ticked() {
+	//Draw association
     graph.association.attr('d', function(d) {
+		//Center coordinates of involved assets
 		var x1 = d.source.x
 		var y1 = d.source.y + (attackStepHeight * d.source.children.length + labelHeight + sideMargin/2)/2
 		var x2 = d.target.x
 		var y2 = d.target.y + (attackStepHeight * d.target.children.length + labelHeight + sideMargin/2)/2
 
+		//Intersections
 		intersections = boxintersection(
 			x1, y1, x2, y2,
 			boxWidth,
@@ -984,9 +1012,11 @@ function ticked() {
 			return
 		}
 
+		//Control point coordinates relative to mid point
 		var qx = x1+((x2-x1)*0.5) + d.control_x
 		var qy = y1+((y2-y1)*0.5) + d.control_y
 
+		//Coordinates controlling out and inbound angle
 		var c1x = qx - (x2-x1)*0.2
 		var c1y = qy - (y2-y1)*0.2
 
@@ -997,12 +1027,15 @@ function ticked() {
 			" M " + qx + " " + qy + " Q " + c2x + " " + c2y + ", " + x2n + " " + y2n
 	})
 	
+	//Draw extends relation
 	graph.isa.attr('points', function(d){
+		//Involved assets center coordinates
 		var x1 = d.subAsset.x
 		var y1 = d.subAsset.y + (attackStepHeight * d.subAsset.children.length + labelHeight + sideMargin/2)/2
 		var x2 = d.superAsset.x
 		var y2 = d.superAsset.y + (attackStepHeight * d.superAsset.children.length + labelHeight + sideMargin/2)/2
 
+		//Intersections
 		intersections = boxintersection(
 			x1, y1, x2, y2,
 			boxWidth,
@@ -1020,6 +1053,7 @@ function ticked() {
 			return
 		}
 
+		//Coordinates to draw arrow at mid point
 		var xm = (x2-x1)/2 + x1
 		var ym = (y2-y1)/2 + y1
 		return "" + x1 + "," + y1 + " " + 
@@ -1031,6 +1065,7 @@ function ticked() {
         return 'translate(' + (d.x - boxWidth/2) + ',' + d.y + ')';
     })
 
+	//Draw external attack step relations
     graph.attackPath.attr('d', function(d) {
 		if(d.source.entity.name == d.target.entity.name) {
 			return
@@ -1087,19 +1122,19 @@ function ticked() {
 		}
 	})
 	
+	//Draw dottend blue line connecting attack step relation and association
     graph.aLink.each(function(d) {
 		var link = d3.select(this)
 
-		var x1c = d.path.source.entity.x
+		//Attack step relation control point coordinates
 		var y1c = d.path.source.entity.y + (d.path.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-		var x2c = d.path.target.entity.x
 		var y2c = d.path.target.entity.y + (d.path.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-
 		var qx = getPathControlX(d.path)
 		var qy = y1c+((y2c-y1c)*0.5) + d.path.control_y
         link.attr('x1', qx)
 		link.attr('y1', qy)
 
+		//Association control point coordinates
 		var x1 = d.association.source.x
 		var y1 = d.association.source.y + (attackStepHeight * d.association.source.children.length + labelHeight + sideMargin/2)/2
 		var x2 = d.association.target.x
@@ -1108,17 +1143,17 @@ function ticked() {
 		link.attr('y2', y1+((y2-y1)*0.5) + d.association.control_y)
     })
 
+	//Draw dotted red line connecting attack step relation and extends relation
     graph.iLink.each(function(d) {
 		var link = d3.select(this)
 		
-		var x1c = d.path.source.entity.x
+		//Attack step relation coordinates
 		var y1c = d.path.source.entity.y + (d.path.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-		var x2c = d.path.target.entity.x
 		var y2c = d.path.target.entity.y + (d.path.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-
 		var x1 = getPathControlX(d.path)
 		var y1 = y1c+((y2c-y1c)*0.5) + d.path.control_y
 
+		//Extends relation coordinates at 40% (0.4)
         var inheritance_id = "inheritance_" + d.link.source + "_" + d.link.target
 		var inheritance = document.getElementById(inheritance_id)
 		if(inheritance.getAttributeNS(null, "points") == null) {
@@ -1132,12 +1167,11 @@ function ticked() {
 		link.attr('y2', midPoint.y)
 	})
 	
+	//Draw internal attack step relations
 	graph.internalPath.attr('d', function(d) {
 		var ys = (d.source.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
 		var yt = (d.target.index * attackStepHeight + labelHeight + 12) + d.source.entity.y
-		var bend = 4
-		var rnd = 0;
-
+		//Decide on drawing to left or right
 		if(d.source.index < d.target.index) {
 			var start = "M " + (d.source.entity.x + boxWidth/2 - arrowMargin) + " " + (ys+5) + " "
 			var c1 = "" + (d.source.entity.x + d.control_x*0.82) + " " + (ys+5)
@@ -1157,6 +1191,7 @@ function ticked() {
 		}
 	})
 
+	//Draw source role name
 	graph.sourceRoleName.each(function(d) {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
@@ -1168,6 +1203,7 @@ function ticked() {
 		text.attr('y', point.y + d.sry)
 	})
 
+	//Draw target role name
 	graph.targetRoleName.each(function(d) {
 		var text = d3.select(this)
 		var elem = document.getElementById(getAssociationId(d))
@@ -1179,6 +1215,7 @@ function ticked() {
 		text.attr('y', point.y + d.try)
 	})
 
+	//Position association control point
 	graph.controlPoint.each(function(d) {
 		var point = d3.select(this)
 
@@ -1194,12 +1231,11 @@ function ticked() {
 		point.attr('cy', qy)
 	})
 	
+	//Position attack step relation control point
 	graph.pathControlPoint.each(function(d) {
 		var point = d3.select(this)
 		
-		var x1 = d.source.entity.x
 		var y1 = d.source.entity.y + (d.source.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
-		var x2 = d.target.entity.x
 		var y2 = d.target.entity.y + (d.target.index * attackStepHeight + labelHeight) + (attackStepHeight/2)
 
 		var qx = getPathControlX(d)
@@ -1211,18 +1247,17 @@ function ticked() {
 
 }
 
+//Functions for asset drag
 function draggedStart(d) {
 	simulation.alphaTarget(1.0).restart()
 	d.fixed = true
 	d.fx = d.x
 	d.fy = d.y
 }
-
 function dragged(d) {
 	d.fx = d3.event.x
 	d.fy = d3.event.y
 }
-
 function draggedEnd(d) {
 	if (!d3.event.active) simulation.alphaTarget(0);
 	d.fixed = false
@@ -1243,8 +1278,10 @@ function removeMenuAndHide() {
 	d3.selectAll('.link_path_association').attr("opacity", "0.0")
 }
 
+//Attack steps currently traced and kind of trace
 var selectedSteps = []
 
+//Do selected traces on selected attack steps
 function selection(attackStep, action) {
 	if(attackStep && action) {
 		selectedSteps.push({
@@ -1267,6 +1304,7 @@ function selection(attackStep, action) {
 	}
 }
 
+//Remove traces from selected attack step
 function removeSelection(attackStep) {
 	if(selectedSteps) {
 		selectedSteps = selectedSteps.filter(function(step) {return step.step != attackStep})
@@ -1274,24 +1312,22 @@ function removeSelection(attackStep) {
 	selection(null, null)
 }
 
+//Update visibility for the different trace options
 function traceChildren(attackStep) {
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.child_to_' + attackStep).attr("opacity","1.0")
 }
-
 function traceParents(attackStep) {
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.parent_to_' + attackStep).attr("opacity","1.0")
 }
-
 function traceAllChildren(attackStep) {
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.rec_child_to_' + attackStep).attr("opacity","1.0")
 }
-
 function traceAllParents(attackStep) {
 	d3.selectAll('#' + attackStep).attr("opacity","1.0")
 	d3.selectAll('.' + attackStep).attr("opacity","1.0")
