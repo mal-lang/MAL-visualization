@@ -17,7 +17,21 @@ Setup/Build:
     4.
     Open MAL-visualization/index.html in a web browser.
 
+    NOTE: If you are using windows, replace step 2 and 3 commands with:
+    >   javac -cp "json-simple-1.1.1.jar;." Generate.java
+    >   java -cp "json-simple-1.1.1.jar;." Generate path-to-mal-file
+
 Usage:
+
+    Before the visualization starts the user is prompted two questions:
+        1. 
+        If attack steps tagged as "@hidden" should be excluded in the visualization. 
+        If no such exists the answer does not matter.
+
+        2.
+        Asset width. The asset with will be set such that the attack step names can be the prompted number of characters.
+
+    Below is a quick usage guide. To get more information on how to use the visualizer look at the file usage.pdf in this repository.
 
     Zoom and Pan
         Zooming is possible with the mouse wheel/touch pad. Click on empty space on the screen and
