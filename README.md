@@ -21,8 +21,7 @@ Setup/Build:
     >   javac -cp "json-simple-1.1.1.jar;." Generate.java
     >   java -cp "json-simple-1.1.1.jar;." Generate path-to-mal-file
 
-Usage:
-For in detail description check out [usage.pdf](usage.pdf)
+Usage (For in detail description check out [usage.pdf](usage.pdf)):
 
     Before the visualization starts the user is prompted two questions:
         1. 
@@ -32,7 +31,7 @@ For in detail description check out [usage.pdf](usage.pdf)
         2.
         Asset width. The asset with will be set such that the attack step names can be the prompted number of characters.
 
-    Below is a quick usage guide. To get more information on how to use the visualizer look at the file [usage.pdf](usage.pdf) in this repository.
+    Below is a quick usage guide. To get more information on how to use the visualizer look at the file usage.pdf in this repository.
 
     Zoom and Pan
         Zooming is possible with the mouse wheel/touch pad. Click on empty space on the screen and
