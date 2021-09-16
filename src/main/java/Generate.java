@@ -1,3 +1,5 @@
+package mal_visualization;
+
 import java.io.File;
 
 public class Generate {
@@ -9,8 +11,9 @@ public class Generate {
             Lang lang = LangConverter.convert(ast);
             Generator.generate(lang, null);
         } catch(Exception e) {
-            e.printStackTrace();
-            System.out.println("No file provided");
+            System.out.println("Error: No file provided, please provide an input MAL specification");
+            System.out.println("Example Usage:");
+            System.out.println("java -jar MAL-visualization.jar /path/to/spec.mal");
         }
     }
 

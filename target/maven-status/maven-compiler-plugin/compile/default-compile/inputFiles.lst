@@ -1,0 +1,15 @@
+/home/gnc/MAL-visualization/src/main/java/Generator.java
+/home/gnc/MAL-visualization/src/main/java/Scope.java
+/home/gnc/MAL-visualization/src/main/java/MalInfo.java
+/home/gnc/MAL-visualization/src/main/java/Distributions.java
+/home/gnc/MAL-visualization/src/main/java/Lang.java
+/home/gnc/MAL-visualization/src/main/java/Generate.java
+/home/gnc/MAL-visualization/src/main/java/CompilerException.java
+/home/gnc/MAL-visualization/src/main/java/TokenType.java
+/home/gnc/MAL-visualization/src/main/java/Token.java
+/home/gnc/MAL-visualization/src/main/java/LangConverter.java
+/home/gnc/MAL-visualization/src/main/java/Parser.java
+/home/gnc/MAL-visualization/src/main/java/MalLogger.java
+/home/gnc/MAL-visualization/src/main/java/Lexer.java
+/home/gnc/MAL-visualization/src/main/java/Position.java
+/home/gnc/MAL-visualization/src/main/java/AST.java
