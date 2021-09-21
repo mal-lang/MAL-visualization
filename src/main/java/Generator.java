@@ -1,7 +1,9 @@
 //Generates JSON for the MAL-Visualization program
+package mal_visualization;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
@@ -9,7 +11,9 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Date;
 import java.util.stream.Collectors;
+import java.text.SimpleDateFormat;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -100,15 +104,47 @@ public class Generator {
     json.put("associations", associations);
     String jsonString = json.toString();
 
-    var output = new File("../script.js");
-    var is = new FileInputStream(new File("../resources/script-template.js"));
+    Date now = new Date();
+    SimpleDateFormat dateFormat = new SimpleDateFormat("hh_mm_ss");
+    String time = dateFormat.format(now);
+    var dirname = "MAL_view_" + time;
+    File output_dir = new File(dirname);
+    output_dir.mkdir();
+
+    // Write script.js
+    var output = new File(output_dir, "script.js");
+    ClassLoader classLoader = getClass().getClassLoader();
+    InputStream is = classLoader.getResourceAsStream("script-template.js");
     var reader = new BufferedReader(new InputStreamReader(is));
+
     String content = reader.lines().collect(Collectors.joining(System.lineSeparator()));
     content = content.replace("{{JSON}}", jsonString);
 
     try (var pw = new PrintWriter(output)) {
       pw.write(content);
     }
+
+    // Write index.html
+    var index_output = new File(output_dir,"index.html");
+    InputStream is_index = classLoader.getResourceAsStream("index.html");
+    var reader_index = new BufferedReader(new InputStreamReader(is_index));
+    String index_content = reader_index.lines().collect(Collectors.joining(System.lineSeparator()));
+
+    try (var pw = new PrintWriter(index_output)) {
+      pw.write(index_content);
+    }
+
+    // Write initialize.js
+    var init_output = new File(output_dir,"initialize.js");
+    InputStream is_init = classLoader.getResourceAsStream("initialize.js");
+    var reader_init = new BufferedReader(new InputStreamReader(is_init));
+    String init_content = reader_init.lines().collect(Collectors.joining(System.lineSeparator()));
+
+    try (var pw = new PrintWriter(init_output)) {
+      pw.write(init_content);
+    }
+
+
   }
 
   private AttackStepField getAttackStep(Lang.StepExpr expr, ArrayList<Lang.Field> fields) {
